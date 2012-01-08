@@ -8,6 +8,13 @@ class UIObject:
 
 
 UIObject = class{
+
+  var element
+
+  class_new(self){
+    element = None
+  }
+
   getElement = obj_fct(self){
     return self.element
   }
@@ -20,6 +27,13 @@ UIObject = class{
 
 
 UIObject = class{
+
+  var element
+
+  class_new(self){
+    element = None
+  }
+
   getElement = obj_fct(self){
     var var_a = getattr(self, 'element')
     return var_a
@@ -30,4 +44,8 @@ UIObject = class{
   }
 }
 
+UIObject = function{
+
+
+}
 
