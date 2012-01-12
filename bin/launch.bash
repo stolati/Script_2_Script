@@ -6,7 +6,7 @@ input="$all2all_path/input"
 output="$all2all_path/output"
 tmp="$all2all_path/tmp"
 
-case "${1}" in
+case "${1:-}" in
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
     pyjampiler="$refs/Pyjamas/bin/pyjampiler"
