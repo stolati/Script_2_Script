@@ -9,7 +9,11 @@ if __name__ == "__main__":
 
   content = open(f).read()
 
-  print parse.parse(content, f)
+  visitor = parse.MyFirstVisitor()
+  print visitor
+  ast = parse.parse(content, f)
+  print ast
+  ast.visiteWith(visitor)
 
 
 #test001 :

@@ -20,7 +20,7 @@ It has :
 
 
 It's interesting to load all the code once, then perfom the optimisation on them.
-Each node should have maximal 3 elements
+Each node should have maximal 3 elements on the simple stuffs
 
 
 - Transforme 1 test into python ast
@@ -44,18 +44,45 @@ Milestone 2:
 
 
 
+No differents assignations, only :
+ - direct assignation ( variable = value )
+
+So i[3] = 4 become : i.set(id=3, slice=4)
+
+Python => AST => SIMPLE => AST => Javascript
 
 
+Python stuff that need adaptation :
+ - Yield
+ - Long data type
+ - Function
+ - Import
+ - Getter/setters
+ - __call__
+ - operators
+ - dir
+ - getattr/setattr
 
+Make a configuration
+[input]
+  ast2simple
+  astParsing
+  source2ast
+[optimisation]
+  simpleParsing
+  optimisation
+[output]
+  simple2ast
+  astParsing
+  ast2source
 
+Make a library by module, so it can be adapted for each languages
 
+Code :
+ - Init, Commun
+ - Library
+ - Source by module
+   - Modules = [expressions]
+     - expression have the source line information
 
-
-
-
-
-
-
-
-
-
+#__EOF__
