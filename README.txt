@@ -16,18 +16,11 @@ It has :
  - Content is simplified (if had always an else, while/for/foreach => do while)
  - Class functions are not attached to the current object
  - lambda functions
- - new Object() is a special expression (not like python) 
-
-
-
-
+ - new Object() is a special expression (not like python)
 
 
 It's interesting to load all the code once, then perfom the optimisation on them.
 Each node should have maximal 3 elements
-
-
-
 
 
 - Transforme 1 test into python ast
