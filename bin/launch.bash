@@ -32,11 +32,11 @@ case "${1:-}" in
     }
     mercurial_pull(){ #<mercurial_path> <dir_name>
       typeset merc_path="$1" dir_name="$2"
-      [[ -d "$refs/$dir_name" ]] || hg clone "$merc_path" "$dir_name"
+      [[ -d "$refs/$dir_name" ]] || hg clone --insecure "$merc_path" "$dir_name"
       echo "Pulling $dir_name"
       (
         cd "$refs/$dir_name"
-        hg pull
+        hg pull --insecure
       )
     }
 
