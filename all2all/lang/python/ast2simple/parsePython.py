@@ -7,11 +7,11 @@ def parse(code, filename):
   return ASTWrapper(ast.parse(code, filename))
 
 class ASTWrapper:
-  def __init__(self, ast, printFunc = astPrint.print_python):
+  def __init__(self, ast, printFunc = astPrint.Print_python):
     self._content = ast
     self._printFunc = printFunc
 
-  def __str__(self): return self._printFunc(self._content)
+  def __str__(self): return str(self._printFunc(self._content))
 
   def visiteWith(self, visitor):
     self._content = visitor.visit(self._content)
@@ -90,28 +90,81 @@ class Return:
   def __init__(self, value): self.value = value
   def __str__(self): return 'Return %s' % self.value
 
+class Call:
+  _fields = ['func', 'args']
+  def __init__(self, func, args): self.func, self.args = func, args
+  def __str__(self): return '%s(%s)' % (self.func, ', '.join(str(a) for a in self.args))
+
+class Str:
+  _fields = ['s']
+  def __init__(self, s): self.s = s
+  def __str__(self): return '"%s"' % self.s.replace('"', '\\"').replace('\n', '\\n')
+
+class IfElse:
+  _fields = ['test', 'if', 'orelse']
+  def __init__(self, test, body, orelse): self.test, self.body, self.orelse = test, body, orelse
+  def __str__(self): return 'If(%s) %s else %s' % (self.test, self.body, self.orelse)
+
+class NoneType:
+  _fields = []
+  def __init__(self): pass
+  def __str__(self): return "null"
 
 
 #for each element of Python, transform it into an element of SIMPLE
 #some element should be absent, replaced by other python syntax element
 class PythonAst2Simple(ast.NodeTransformer):
 
+  #replace temporaly visit method
+  #TODO remove
+  def visit(self, node):
+    method = 'visit_' + node.__class__.__name__
+    try:
+      visitor = getattr(self, method)
+    except:
+      assert False, "Function %s don\'t exists" % method
+    return visitor(node)
+
+
+  #called when we have a body
+  def visit_body(self, body):
+    if not body: return ExprList([])
+    if len(body) == 1 and body[0].__class__.__name__ == "Pass":
+      return ExprList([])
+    return ExprList([self.visit(e) for e in body])
+
   #don't exists in simple elements
   def visit_For(self, node): raise NotExistsException('For')
+  def visit_Pass(self, node): raise NotExistsException('Pass')
 
+  def visit_Str(self, node): return Str(node.s)
+
+  def visit_Call(self, node):
+    assert not node.keywords, 'TODO do keywords arguments'
+    assert not node.starargs, 'TODO do starargs arguments'
+    assert not node.kwargs, 'TODO do kwargs arguments'
+
+    argList = [self.visit(e) for e in node.args]
+    return Call(self.visit(node.func), argList)
+
+  def visit_Import(self, node):
+    return Name('import TODO')
+
+  def visit_ImportFrom(self, node):
+    return Name('import TODO')
+
+  def visit_Expr(self, node):
+    return self.visit(node.value)
 
   def visit_Module(self, node):
-    exprList = [self.visit(e) for e in node.body]
-    return Module(ExprList(exprList))
+    return Module(self.visit_body(node.body))
 
   def visit_ClassDef(self, node):
-    exprList = [self.visit(e) for e in node.body]
-    return Assign(Variable(node.name), Class(ExprList(exprList)))
+    return Assign(Variable(node.name), Class(self.visit_body(node.body)))
 
   def visit_FunctionDef(self, node):
-    exprList = [self.visit(e) for e in node.body]
     params = [Name( e.id ) for e in node.args.args]
-    return Assign(Variable(node.name), Function(Params(params), ExprList(exprList)))
+    return Assign(Variable(node.name), Function(Params(params), self.visit_body(node.body)))
 
   def visit_Assign(self, node):
     assert len(node.targets) == 1, 'TODO change function when this raise'
@@ -123,8 +176,39 @@ class PythonAst2Simple(ast.NodeTransformer):
   def visit_Name(self, node): return Name(node.id)
 
   def visit_Return(self, node): return Return(self.visit(node.value))
+  def visit_If(self, node):
+    return IfElse(self.visit(node.test), self.visit_body(node.body), self.visit_body(node.orelse))
 
-  #def visit_Module(self, node):
+  def visit_List(self, node):
+    return Call(Name('List'), [self.visit(e) for e in node.elts])
+
+  def visit_Compare(self, node):
+    elements = [self.visit(node.left)]
+    for o, c in zip(node.ops, node.comparators):
+      elements.append(self.visit(c))
+      elements.append(self.visit(o))
+    return Call(Name("Compare"), elements)
+
+  def visit_NoneType(self, node): return NoneType()
+
+  def visit_Eq(self, e): return  Str('=')
+  def visit_NotEq(self, e): return  Str('!=')
+  def visit_Lt(self, e): return  Str('<')
+  def visit_LtE(self, e): return  Str('<=')
+  def visit_Gt(self, e): return  Str('>')
+  def visit_GtE(self, e): return  Str('>=')
+  def visit_Is(self, e): return  Str('is')
+  def visit_IsNot(self, e): return  Str('is not')
+  def visit_In(self, e): return  Str('in')
+  def visit_NotIn(self, e): return  Str('not in')
+
+  def visit_UnaryOp(self, node):
+    return Call(Name("UnaryOp"), [self.visit(node.op), self.visit(node.operand)])
+
+  def visit_Not(self, node): return Str("Not")
+  def visit_UAdd(self, node): return Str("+")
+  def visit_USub(self, node): return Str("-")
+  def visiti_Invert(sel, node): return Str("~")
 
 
 #ast.copy_location(new_node, old_node)
@@ -134,6 +218,50 @@ class PythonAst2Simple(ast.NodeTransformer):
 #ast.walk(node) -> nodes (all of them)
 
 #NodeTransformer.dump(node, annotate_fields=True, include_attributes=False)
+
+class ForIntoWhile(ast.NodeTransformer):
+
+  ##base
+  #for a1 in a2:
+  #  a3
+  #else:
+  #  a4
+
+  ##goal test 1
+  #aIter = a3.__iter__()
+  #aContinue = True
+  #try:
+  #  a1 = aIter.next()
+  #except StopIteration:
+  #  aContinue = False
+  #
+  #while(aContinue):
+  #  a4
+  #  try:
+  #    a1 = aIter.next()
+  #  except StopIteration:
+  #    Stop = False
+  #else:
+  #  a4
+
+  ##goal from wikipedia
+  #aIter = iter(a3)
+  #while True:
+  #  try:
+  #    a1 = aIter.next() #python 2.x
+  #    a1 = next(aIter) #python 3.x
+  #  except: StopIteration:
+  #    break
+  #  a3
+  ##but where is the a4 one ?
+
+  def visit_For(self, node): pass #TODO fill this
+
+
+
+
+
+
 
 
 #__EOF__
