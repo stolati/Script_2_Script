@@ -30,10 +30,20 @@ case "${1:-}" in
         git pull
       )
     }
+    mercurial_pull(){ #<mercurial_path> <dir_name>
+      typeset merc_path="$1" dir_name="$2"
+      [[ -d "$refs/$dir_name" ]] || hg clone "$merc_path" "$dir_name"
+      echo "Pulling $dir_name"
+      (
+        cd "$refs/$dir_name"
+        hg pull
+      )
+    }
 
-    git_pull git://pyjs.org/git/pyjamas.git Pyjamas
-    git_pull http://git.nuitka.net/Nuitka.git Nuitka
-    git_pull git://gitorious.org/shedskin/mainline.git Shedskin
+    #git_pull git://pyjs.org/git/pyjamas.git Pyjamas
+    #git_pull http://git.nuitka.net/Nuitka.git Nuitka
+    #git_pull git://gitorious.org/shedskin/mainline.git Shedskin
+    mercurial_pull https://bitbucket.org/pypy/pypy Pypy
     echo "Pulling all2all from github"
     ( cd "$all2all_path" ; git pull ; )
 
