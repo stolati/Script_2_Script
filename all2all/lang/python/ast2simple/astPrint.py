@@ -2,197 +2,203 @@
 
 #this module give some ways to print an ast module
 
-#TODO class print_python
-#class print_python(content, level=0
+class Print_python:
+  def __init__(self, content):
+    self.content = content
+    self.indent_str = '|  '
 
-#try to print python code
-def print_python(content, level=0):
-  #TODO remove line, temporaly use this trick before we have true Simple
-  if content.__class__.__str__ != object.__str__:
-    return str(content)
+  def indentStr(self, s): #return the same string, indented
+    return '\n'.join([self.indent_str + ss for ss in s.split('\n')])
 
-  import ast
-  indent, indentNext = level * '  ', (level+1)* '  '
-  passing = indentNext + 'pass\n'
-  r = lambda e : print_python(e, level)
-  rplus = lambda e : print_python(e, level+1)
-  rzero = lambda e : print_python(e, 0)
+  def bodyIndent(self, body): #return a body in an indented form
+    if not body : return []
+    return [self.indent_str + ss for ss in '\n'.join([self(e) for e in body]).split('\n')]
 
-  if isinstance(content, ast.Module):
-    moduleHeader = '{indent}{comment}\n{indent}# Module\n{indent}{comment}\n\n'.format(indent=indent, comment=20*'#')
-    bodyStr =''.join([r(e)+'\n' for e in content.body])
+  def ast2str(self, e):
+    #TODO remove line, temporaly use this trick before we have true Simple
+    if e.__class__.__str__ != object.__str__: return str(e)
+    #get the class name and use it for calling function
+    return getattr(self, 'str_' + e.__class__.__name__, self.classNotFound)(e)
+
+  def classNotFound(self, e):
+    if hasattr(e, '_fields'): return '%s%s' % (e, repr(e._fields))
+    if hasattr(e, '__iter__'): return '%s(is a list)' % (e)
+    return str(e)
+
+  def __call__(self, e): return self.ast2str(e) #for one time change
+  def __str__(self): return self(self.content)
+
+  ##########################
+  # named functions
+  ##########################
+
+  def str_Module(self, e):
+    comment = 20 * '#' + '\n'
+    moduleHeader = '%s# Module\n%s\n' % (comment, comment)
+    bodyStr = ''.join([self(e)+'\n' for e in e.body])
     return moduleHeader + bodyStr
 
-  if isinstance(content, ast.ClassDef):
-    deco = ''.join([r(e) for e in content.decorator_list])
-    bases = ', '.join([rzero(e) for e in content.bases])
-    if bases : bases = '(%s)' % bases
-    declaration = 'class ' + content.name + bases + ':\n'
-    bodyStr = ''.join([rplus(e)+'\n' for e in content.body]) or passing
-    return deco + declaration + bodyStr
+  def str_ClassDef(self, e):
+    res = [self(d) for d in e.decorator_list]
+    bases = ', '.join([self(b) for b in e.bases])
+    res.append('class %s%s:' %(e.name, bases and '(%s)' % bases))
+    res += self.bodyIndent(e.body)
+    return '\n'.join(res)
 
-  if isinstance(content, ast.FunctionDef):
-    deco = ''.join([r(e) for e in content.decorator_list])
-    args = rzero(content.args)+':\n'
-    body = ''.join([rplus(e)+'\n' for e in content.body]) or passing
-    return deco + indent + 'def ' + content.name + args + body
+  def str_FunctionDef(self, e):
+    res = [self(e) for e in e.decorator_list]
+    res.append('def %s%s:' % (e.name, self(e.args)))
+    res += self.bodyIndent(e.body)
+    return '\n'.join(res)
 
-  if isinstance(content, ast.arguments):
+  def str_arguments(self, e):
     res = []
-    args, defaults = list(content.args), list(content.defaults)
+    args, defaults = list(e.args), list(e.defaults)
 
     args.reverse(), defaults.reverse()
     defaults += [None] * len(args)
     for a, d in zip(args, defaults):
-      if d: res.append('%s = %s' % (rzero(a), rzero(d)))
-      else: res.append(rzero(a))
+      if d: res.append('%s = %s' % (self(a), self(d)))
+      else: res.append(self(a))
     res.reverse()
 
-    if content.vararg : res.append('*'+r(content.vararg))
-    if content.kwarg : res.append('**'+r(content.kwarg))
+    if e.vararg : res.append('*'+r(e.vararg))
+    if e.kwarg : res.append('**'+r(e.kwarg))
     return '('+', '.join(res)+')'
 
+  def str_Name(self, e): return e.id
+  def str_Return(self, e): return 'return %s' % self(e.value)
+  def str_Attribute(self, e): return '%s.%s' % (self(e.value), e.attr)
+  def str_Assign(self, e): return '%s = %s' % ( ', '.join(self(e) for e in e.targets), self(e.value))
+  def str_Import(self, e):
+    return '\n'.join('import %s' % self(e) for e in e.names)
+  def str_alias(self, e):
+    return (e.asname and '{n} as {a}' or '{n}').format(n=e.name, a=e.asname)
+  def str_Expr(self, e): return self(e.value)
+  def str_Call(self, e):
+    res = [self(a) for a in e.args]
+    res += [self(a) for a in e.keywords]
+    res += ['*' + self(a) for a in e.starargs or []] #TODO
+    res += ['**' + self(a) for a in e.kwargs or []] #TODO
+    return '%s(%s)' % (self(e.func), ', '.join(res))
+  def str_Pass(self, e): return 'pass'
+  def str_ImportFrom(self, e):
+    return 'from %s import %s' % (e.module, ', '.join(self(e) for e in e.names) )
 
 
-  if isinstance(content, ast.Name): return content.id
-  if isinstance(content, ast.Return): return indent + 'return ' + rzero(content.value)
-  if isinstance(content, ast.Attribute): return indent + '%s.%s' % (rzero(content.value), content.attr)
-  if isinstance(content, ast.Assign): return indent + '%s = %s' % ( ', '.join(rzero(e) for e in content.targets), rzero(content.value))
-  if isinstance(content, ast.Import):
-    return '\n'.join('%simport %s' % (indent, rzero(e)) for e in content.names)
-  if isinstance(content, ast.alias):
-    return (content.asname and '{n} as {a}' or '{n}').format(n=content.name, a=content.asname)
-  if isinstance(content, ast.Expr): return indent + rzero(content.value)
-  if isinstance(content, ast.Call):
-    res = [rzero(a) for a in content.args]
-    res += [rzero(a) for a in content.keywords]
-    res += ['*' + rzero(a) for a in content.starargs or []] #TODO
-    res += ['**' + rzero(a) for a in content.kwargs or []] #TODO
-    return '%s(%s)' % (rzero(content.func), ', '.join(res))
-  if isinstance(content, ast.Pass): return passing
-  if isinstance(content, ast.ImportFrom):
-    return indent + 'from %s import %s' % (content.module, ', '.join(rzero(e) for e in content.names) )
+  def str_If(self, e):
+    res = ['if %s:' % self(e.test)]
+    res += self.bodyIndent(e.body)
+    orelse = self.bodyIndent(e.orelse)
+    res += orelse and ['else:'] + orelse or []
+    return '\n'.join(res)
+  def str_While(self, e):
+    res = ['while %s:' % self(e.test)]
+    res += self.bodyIndent(e.body)
+    orelse = self.bodyIndent(e.orelse)
+    res += orelse and ['else:'] + orelse or []
+    return '\n'.join(res)
+  def str_For(self, e):
+    res = ['for %s in %s:' % (self(e.target), self(e.iter))]
+    res += self.bodyIndent(e.body)
+    orelse = self.bodyIndent(e.orelse)
+    res += orelse and ['else:'] + orelse or []
+    return '\n'.join(res)
+  def str_TryExcept(self, e):
+    res = ['try:']
+    res += self.bodyIndent(e.body)
+    res += [self(e) for e in e.handlers]
+    orelse = self.bodyIndent(e.orelse)
+    res += orelse and ['else:'] + orelse or []
+    return '\n'.join(res)
+  def str_ExceptHandler(self, e):
+    name = e.name and self(e.name) or ''
+    typeStr = e.type and self(e.type) or ''
+    res = ['except:']
+    if typeStr: res = ['except %s:' % typeStr]
+    if name and typeStr: res = ['except %s as %s:' %(typeStr, name)]
+    res += self.bodyIndent(e.body)
+    return '\n'.join(res)
 
+  def str_AugAssign(self, e):
+    return '%s %s= %s' %(self(e.target), self(e.op), self(e.value))
+  def str_Delete(self, e):
+    return 'del %s' %(', '.join(self(e) for e in e.targets))
+  def str_Global(self, e):
+    return 'global ' + ', '.join(self(e) for e in e.names)
 
-  if isinstance(content, ast.If):
-    test = rzero(content.test)
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    orelse = ''.join(rplus(e)+'\n' for e in content.orelse)
-    ifstr = '%sif %s:\n%s' % (indent, test, body)
-    elsestr = orelse and '%selse:\n%s' % (indent, orelse) or ''
-    return ifstr + elsestr
-  if isinstance(content, ast.While):
-    test = rzero(content.test)
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    orelse = ''.join(rplus(e)+'\n' for e in content.orelse)
-    ifstr = '%swhile %s:\n%s' % (indent, test, body)
-    elsestr = orelse and '%selse:\n%s' % (indent, orelse) or ''
-    return ifstr + elsestr
-  if isinstance(content, ast.For):
-    target = rzero(content.target)
-    iterStr = rzero(content.iter)
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    orelse = ''.join(rplus(e)+'\n' for e in content.orelse)
-    elseStr = orelse and '%selse:\n%s' % (indent, orelse) or ''
-    return indent + 'for %s in %s:\n%s' % (target, iterStr, body) + elseStr
-  if isinstance(content, ast.TryExcept):
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    handlers = ''.join(r(e)+'\n' for e in content.handlers)
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    orelse = ''.join(rplus(e)+'\n' for e in content.orelse)
-    return indent + 'try:\n' + body + handlers + orelse
-  if isinstance(content, ast.ExceptHandler):
-    body = ''.join(rplus(e)+'\n' for e in content.body)
-    name = content.name and rzero(content.name) or ''
-    typeStr = content.type and rzero(content.type) or ''
-    if name and typeStr: return indent + 'except %s as %s:\n%s' %(typeStr, name, body)
-    if typeStr: return indent + 'except %s:\n%s' %(typeStr, body)
-    return indent + 'except:\n%s' %(body)
-
-  if isinstance(content, ast.AugAssign):
-    return indent + '%s %s= %s' %(rzero(content.target), rzero(content.op), rzero(content.value))
-  if isinstance(content, ast.Delete):
-    return indent + 'del %s' %(', '.join(rzero(e) for e in content.targets))
-  if isinstance(content, ast.Global):
-    return indent + 'global ' + ', '.join(rzero(e) for e in content.names)
-
-  if isinstance(content, ast.Print):
-    dest = content.dest and rzero(content.dest) +', ' or ''
-    values = ', '.join(rzero(e) for e in content.values)
-    nl = (not content.nl) and ',' or ''
-    return indent + 'print %s' % dest+ values +nl
+  def str_Print(self, e):
+    dest = e.dest and self(e.dest) +', ' or ''
+    values = ', '.join(self(e) for e in e.values)
+    nl = (not e.nl) and ',' or ''
+    return 'print %s' % dest+ values +nl
 
 
 
 
   #slices and index
-  if isinstance(content, ast.Subscript): return indent+ rzero(content.value) + '['+ rzero(content.slice) + ']'
-  if isinstance(content, ast.Index): return indent+rzero(content.value)
-  if isinstance(content, ast.Slice):
-    step = {None:''}.get(content.step, rzero(content.step))
-    return indent+rzero(content.lower)+':'+rzero(content.upper) + step
+  def str_Subscript(self, e): return self(e.value) + '['+ self(e.slice) + ']'
+  def str_Index(self, e): return self(e.value)
+  def str_Slice(self, e):
+    step = {None:''}.get(e.step, self(e.step))
+    return self(e.lower)+':'+self(e.upper) + step
 
   #base types
-  if isinstance(content, ast.Num): return indent + str(content.n)
-  if isinstance(content, ast.Str):
-    res = content.s
+  def str_Num(self, e): return str(e.n)
+  def str_Str(self, e):
+    res = e.s
     replace = [('"', '\\"'), ("\n", "\\n"), ("\t", "\\t")]
     for a, b in replace : res = res.replace(a, b)
     return '"%s"' % res
-  if isinstance(content, ast.List): return indent+'[%s]' % ', '.join(rzero(e) for e in content.elts)
-  if isinstance(content, ast.Tuple): return indent+'(%s)' % ', '.join(rzero(e) for e in content.elts)
-  if isinstance(content, ast.Dict): return indent+'{%s}' %  ', '.join(rzero(e1) + ':' + rzero(e2) for e1, e2 in zip(content.keys, content.values))
+  def str_List(self, e): return '[%s]' % ', '.join(self(e) for e in e.elts)
+  def str_Tuple(self, e): return '(%s)' % ', '.join(self(e) for e in e.elts)
+  def str_Dict(self, e): return '{%s}' %  ', '.join(self(e1) + ':' + self(e2) for e1, e2 in zip(e.keys, e.values))
 
   #boolean operators
-  if isinstance(content, ast.BoolOp):
-    return indent+ (' %s ' % rzero(content.op)).join(rzero(e) for e in content.values)
-  if isinstance(content, ast.Or): return indent+'or'
-  if isinstance(content, ast.And): return indent+'and'
+  def str_BoolOp(self, e):
+    return  (' %s ' % self(e.op)).join(self(e) for e in e.values)
+  def str_Or(self, e): return 'or'
+  def str_And(self, e): return 'and'
 
 
   #binary operators
-  if isinstance(content, ast.BinOp):
-    return indent + '%s %s %s' % (rzero(content.left), rzero(content.op), rzero(content.right))
-  if isinstance(content, ast.Add): return indent + '+'
-  if isinstance(content, ast.Sub): return indent + '-'
-  if isinstance(content, ast.Mult): return indent + '*'
-  if isinstance(content, ast.Div): return indent + '/'
-  if isinstance(content, ast.Mod): return indent + '%'
-  if isinstance(content, ast.Pow): return indent + '**'
-  if isinstance(content, ast.LShift): return indent + '>>'
-  if isinstance(content, ast.RShift): return indent + '<<'
-  if isinstance(content, ast.BitOr): return indent + '|'
-  if isinstance(content, ast.BitXor): return indent + '^'
-  if isinstance(content, ast.BitAnd): return indent + '&'
-  if isinstance(content, ast.FloorDiv): return indent + '//'
+  def str_BinOp(self, e):
+    return  '%s %s %s' % (self(e.left), self(e.op), self(e.right))
+  def str_Add(self, e): return  '+'
+  def str_Sub(self, e): return  '-'
+  def str_Mult(self, e): return  '*'
+  def str_Div(self, e): return  '/'
+  def str_Mod(self, e): return  '%'
+  def str_Pow(self, e): return  '**'
+  def str_LShift(self, e): return  '>>'
+  def str_RShift(self, e): return  '<<'
+  def str_BitOr(self, e): return  '|'
+  def str_BitXor(self, e): return  '^'
+  def str_BitAnd(self, e): return  '&'
+  def str_FloorDiv(self, e): return  '//'
 
   #comparaison operators
-  if isinstance(content, ast.Compare):
-    res = rzero(content.left) + ' '
-    res += ' '.join(rzero(o) + ' ' + rzero(c) for o, c in zip(content.ops, content.comparators))
-    return indent + res
-  if isinstance(content, ast.Eq): return indent + '='
-  if isinstance(content, ast.NotEq): return indent + '!='
-  if isinstance(content, ast.Lt): return indent + '<'
-  if isinstance(content, ast.LtE): return indent + '<='
-  if isinstance(content, ast.Gt): return indent + '>'
-  if isinstance(content, ast.GtE): return indent + '>='
-  if isinstance(content, ast.Is): return indent + 'is'
-  if isinstance(content, ast.IsNot): return indent + 'is not'
-  if isinstance(content, ast.In): return indent + 'in'
-  if isinstance(content, ast.NotIn): return indent + 'not in'
+  def str_Compare(self, e):
+    res = self(e.left) + ' '
+    res += ' '.join(self(o) + ' ' + self(c) for o, c in zip(e.ops, e.comparators))
+    return  res
+  def str_Eq(self, e): return  '='
+  def str_NotEq(self, e): return  '!='
+  def str_Lt(self, e): return  '<'
+  def str_LtE(self, e): return  '<='
+  def str_Gt(self, e): return  '>'
+  def str_GtE(self, e): return  '>='
+  def str_Is(self, e): return  'is'
+  def str_IsNot(self, e): return  'is not'
+  def str_In(self, e): return  'in'
+  def str_NotIn(self, e): return  'not in'
 
   #unary operators
-  if isinstance(content, ast.UnaryOp): return indent +'%s %s' % (rzero(content.op), rzero(content.operand))
-  if isinstance(content, ast.Not): return indent + 'not'
-  if isinstance(content, ast.UAdd): return indent + '+'
-  if isinstance(content, ast.USub): return indent + '-'
-  if isinstance(content, ast.Invert): return indent + '~'
-
-  #dev else case
-  if hasattr(content, '_fields'): return '%s%s' % (content, repr(content._fields))
-  if hasattr(content, '__iter__'): return '%s(is a list)' % (content)
-  return str(content)
+  def str_UnaryOp(self, e): return '%s %s' % (self(e.op), self(e.operand))
+  def str_Not(self, e): return  'not'
+  def str_UAdd(self, e): return  '+'
+  def str_USub(self, e): return  '-'
+  def str_Invert(self, e): return  '~'
 
 
 #print indented
