@@ -40,9 +40,9 @@ case "${1:-}" in
       )
     }
 
-    #git_pull git://pyjs.org/git/pyjamas.git Pyjamas
-    #git_pull http://git.nuitka.net/Nuitka.git Nuitka
-    #git_pull git://gitorious.org/shedskin/mainline.git Shedskin
+    git_pull git://pyjs.org/git/pyjamas.git Pyjamas
+    git_pull http://git.nuitka.net/Nuitka.git Nuitka
+    git_pull git://gitorious.org/shedskin/mainline.git Shedskin
     mercurial_pull https://bitbucket.org/pypy/pypy Pypy
     echo "Pulling all2all from github"
     ( cd "$all2all_path" ; git pull ; )
