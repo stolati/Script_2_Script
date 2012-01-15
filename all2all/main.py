@@ -9,11 +9,14 @@ if __name__ == "__main__":
 
   content = open(f).read()
 
-  visitor = parse.MyFirstVisitor()
+  visitor = parse.PythonAst2Simple()
   print visitor
   ast = parse.parse(content, f)
+  print '#####################  before  #####################'
   print ast
   ast.visiteWith(visitor)
+  print '#####################  after  #####################'
+  print ast
 
 
 #test001 :

@@ -2,8 +2,15 @@
 
 #this module give some ways to print an ast module
 
+#TODO class print_python
+#class print_python(content, level=0
+
 #try to print python code
 def print_python(content, level=0):
+  #TODO remove line, temporaly use this trick before we have true Simple
+  if content.__class__.__str__ != object.__str__:
+    return str(content)
+
   import ast
   indent, indentNext = level * '  ', (level+1)* '  '
   passing = indentNext + 'pass\n'
@@ -32,7 +39,7 @@ def print_python(content, level=0):
 
   if isinstance(content, ast.arguments):
     res = []
-    args, defaults = content.args, content.defaults
+    args, defaults = list(content.args), list(content.defaults)
 
     args.reverse(), defaults.reverse()
     defaults += [None] * len(args)
