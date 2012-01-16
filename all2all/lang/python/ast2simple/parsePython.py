@@ -13,7 +13,7 @@ class ASTWrapper:
 
   def __str__(self): return str(self._printFunc(self._content))
 
-  def visiteWith(self, visitor):
+  def visitWith(self, visitor):
     self._content = visitor.visit(self._content)
 
 
@@ -110,6 +110,12 @@ class NoneType:
   def __init__(self): pass
   def __str__(self): return "null"
 
+class While:
+  _fields = ['test', 'body']
+  def __init__(self, test, body): self.test, self.body = test, body
+  def __str__(self): return 'While(%s) %s' % (self.test, self.body)
+
+
 
 #for each element of Python, transform it into an element of SIMPLE
 #some element should be absent, replaced by other python syntax element
@@ -138,6 +144,12 @@ class PythonAst2Simple(ast.NodeTransformer):
   def visit_Pass(self, node): raise NotExistsException('Pass')
 
   def visit_Str(self, node): return Str(node.s)
+
+
+
+  def visit_While(self, node):
+    assert not node.orelse
+    return While(self.visit(node.test), self.visit_body(node.body))
 
   def visit_Call(self, node):
     assert not node.keywords, 'TODO do keywords arguments'
@@ -221,26 +233,14 @@ class PythonAst2Simple(ast.NodeTransformer):
 
 class ForIntoWhile(ast.NodeTransformer):
 
+  def geneVariable(self):
+    if not hasattr(self, 'varNum'): self.varNum = 0
+    self.varNum += 1
+    return 'genVar_%s_%s' % (self.__class__.__name__, self.varNum)
+
   ##base
   #for a1 in a2:
   #  a3
-  #else:
-  #  a4
-
-  ##goal test 1
-  #aIter = a3.__iter__()
-  #aContinue = True
-  #try:
-  #  a1 = aIter.next()
-  #except StopIteration:
-  #  aContinue = False
-  #
-  #while(aContinue):
-  #  a4
-  #  try:
-  #    a1 = aIter.next()
-  #  except StopIteration:
-  #    Stop = False
   #else:
   #  a4
 
@@ -253,15 +253,82 @@ class ForIntoWhile(ast.NodeTransformer):
   #  except: StopIteration:
   #    break
   #  a3
-  ##but where is the a4 one ?
-
-  def visit_For(self, node): pass #TODO fill this
-
+  #else:
+  #  a4
 
 
+  def visit_For(self, node):
+    genVar = self.geneVariable()
+
+    return [
+      #geneVar = iter(node.iter)
+      ast.Assign(
+        [Name(genVar)],
+        ast.Call(Name('iter'), [node.iter], [], None, None)
+      ),
+
+      #while True
+      ast.While(Name('True'),
+        [
+          ast.TryExcept( #try:
+            [ast.Assign( #node.target = genVar.next()
+              [node.target],
+              ast.Call(
+                ast.Attribute(Name(genVar), Name('next'), ast.Load()),
+                [], [], None, None
+              )
+            )],
+            #except StopIteration:
+            [ ast.ExceptHandler(Name('StopIteration'), None, [ast.Break()]) ],
+            []
+          )
+        ]+node.body, node.orelse),
+    ]
+
+
+class TrySimplify(ast.NodeTransfomer):
+  pass 
 
 
 
 
+
+
+
+class WhileRemoveElse(ast.NodeTransformer):
+
+  def geneVariable(self):
+    if not hasattr(self, 'varNum'): self.varNum = 0
+    self.varNum += 1
+    return 'genVar_%s_%s' % (self.__class__.__name__, self.varNum)
+
+  #while a1:
+  #  a2
+  #else:
+  #  a3
+
+  ##maybe 1
+  #genVar = a1
+  #if genVar:
+  #  while genVar:
+  #    a2
+  #    genVar = a1
+  #else:
+  #  a3
+
+  ##maybe 2
+  #genVar = True
+  #while a1
+  #  genVar = False
+  #  a2
+  #if genVar:
+  #  a3
+
+  def visit_While(self, node):
+    if not node.orelse : return node
+    assert False, 'TODO while remove else'
+
+  def visit_For(self, node):
+    assert False, "This visitor must be after ForIntoWhile"
 
 #__EOF__

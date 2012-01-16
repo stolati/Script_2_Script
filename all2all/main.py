@@ -2,6 +2,8 @@
 import sys
 import lang.python.ast2simple.parsePython as parse
 
+#True, False and None are variables
+
 if __name__ == "__main__":
 
   print sys.argv
@@ -10,13 +12,16 @@ if __name__ == "__main__":
   content = open(f).read()
 
   visitor = parse.PythonAst2Simple()
-  print visitor
-  ast = parse.parse(content, f)
-  print '#####################  before  #####################'
-  print ast
-  ast.visiteWith(visitor)
+  #print visitor
+  a = parse.parse(content, f)
+  #print '#####################  before  #####################'
+  print a
+
+  a.visitWith(parse.ForIntoWhile())
+  a.visitWith(parse.WhileRemoveElse())
+  a.visitWith(visitor)
   print '#####################  after  #####################'
-  print ast
+  print a
 
 
 #test001 :

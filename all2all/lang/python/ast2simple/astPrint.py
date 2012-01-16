@@ -82,6 +82,8 @@ class Print_python:
     res += ['**' + self(a) for a in e.kwargs or []] #TODO
     return '%s(%s)' % (self(e.func), ', '.join(res))
   def str_Pass(self, e): return 'pass'
+  def str_Break(self, e): return 'Break'
+  def str_Continue(self, e): return 'Continue'
   def str_ImportFrom(self, e):
     return 'from %s import %s' % (e.module, ', '.join(self(e) for e in e.names) )
 
@@ -107,7 +109,7 @@ class Print_python:
   def str_TryExcept(self, e):
     res = ['try:']
     res += self.bodyIndent(e.body)
-    res += [self(e) for e in e.handlers]
+    res += [self(h) for h in e.handlers]
     orelse = self.bodyIndent(e.orelse)
     res += orelse and ['else:'] + orelse or []
     return '\n'.join(res)
