@@ -54,7 +54,8 @@ case "$command" in
       echo "Pulling $dir_name"
       (
         cd "$refs/$dir_name"
-        hg update --insecure
+        #TODO search for update mercurial stuffs, I don't know how to do
+        #hg update --insecure
       )
     }
 
