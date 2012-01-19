@@ -115,6 +115,10 @@ class While:
   def __init__(self, test, body): self.test, self.body = test, body
   def __str__(self): return 'While(%s) %s' % (self.test, self.body)
 
+class Num:
+  _fields = ['n']
+  def __init__(self, n): self.n = n
+  def __str__(self): return 'Num("%s")' % self.n
 
 
 #for each element of Python, transform it into an element of SIMPLE
@@ -144,6 +148,7 @@ class PythonAst2Simple(ast.NodeTransformer):
   def visit_Pass(self, node): raise NotExistsException('Pass')
 
   def visit_Str(self, node): return Str(node.s)
+  def visit_Num(self, node): return Num(node.n)
 
 
 
@@ -222,6 +227,31 @@ class PythonAst2Simple(ast.NodeTransformer):
   def visit_USub(self, node): return Str("-")
   def visiti_Invert(sel, node): return Str("~")
 
+  #binary operators
+  def visit_BinOp(self, node):
+    return Call(Name("BinaryOp"), [self.visit(node.left), self.visit(node.op), self.visit(node.right)])
+  def visit_Add(self, node): return  Str('+')
+  def visit_Sub(self, node): return  Str('-')
+  def visit_Mult(self, node): return  Str('*')
+  def visit_Div(self, node): return  Str('/')
+  def visit_Mod(self, node): return  Str('%')
+  def visit_Pow(self, node): return  Str('**')
+  def visit_LShift(self, node): return  Str('>>')
+  def visit_RShift(self, node): return  Str('<<')
+  def visit_BitOr(self, node): return  Str('|')
+  def visit_BitXor(self, node): return  Str('^')
+  def visit_BitAnd(self, node): return  Str('&')
+  def visit_FloorDiv(self, node): return  Str('//')
+
+  def visit_Subscript(self, node):
+    sliceValue = []
+    if isinstance(node.slice, ast.Index):
+      sliceValue = [Str("Index"), self.visit(node.slice.value)]
+    else : assert False, 'Subscript content not known : %s' % node.slice
+
+    return Call(Name("Subscript"), [self.visit(node.value)] + sliceValue)
+  def visit_Index(self, node): assert False, "should not be visited"
+
 
 #ast.copy_location(new_node, old_node)
 #ast.fix_missing_locations(node)
@@ -286,12 +316,8 @@ class ForIntoWhile(ast.NodeTransformer):
     ]
 
 
-class TrySimplify(ast.NodeTransfomer):
-  pass 
-
-
-
-
+class TrySimplify(ast.NodeTransformer):
+  pass
 
 
 

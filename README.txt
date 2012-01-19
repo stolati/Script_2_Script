@@ -84,5 +84,16 @@ Code :
  - Source by module
    - Modules = [expressions]
      - expression have the source line information
+#
+#TODO :
+# - test on the foreach modifier
+# - do a metaclass for SimpleElement
+# - do a whileremoveElse
+# - do a test case for whileRemoveElse
+# - main pass for each tests
+# - simplifier le try
+# - do a test case for try
+
+
 
 #__EOF__

@@ -1,12 +1,30 @@
 #!/usr/bin/env bash
 set -eu
 
+if [[ -z "${all2all_path:-}" ]]; then
+  echo "Profile not loaded"
+  echo ". profile"
+  exit 1
+fi
+
 refs="$all2all_path/refs"
 input="$all2all_path/input"
 output="$all2all_path/output"
 tmp="$all2all_path/tmp"
 
-case "${1:-}" in
+command="${1:-}"
+shift || true
+
+case "$command" in
+
+  test) #launch main with a test
+    testNum="${1:-}"
+    listTests(){ #<filtre>
+      ls "$all2all_path/tests" | grep '.py$' | grep "${1:-}" | head -1
+    }
+    file="$(listTests "$testNum")"
+    "$all2all_path/all2all/main.py" "$all2all_path/tests/$file"
+  ;;
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
     pyjampiler="$refs/Pyjamas/bin/pyjampiler"
@@ -18,11 +36,11 @@ case "${1:-}" in
 
   ;;
   init)
-    mkdir -p "$refs" && cd "$refs"
+    mkdir -p "$refs"
 
     git_pull(){ #<git_path> <dir_name>
       typeset git_path="$1" dir_name="$2"
-      [[ -d "$refs/$dir_name" ]] || git clone "$git_path" "$dir_name"
+      [[ -d "$refs/$dir_name" ]] || git clone "$git_path" "$refs/$dir_name"
 
       echo "Pulling $dir_name"
       (
@@ -32,11 +50,11 @@ case "${1:-}" in
     }
     mercurial_pull(){ #<mercurial_path> <dir_name>
       typeset merc_path="$1" dir_name="$2"
-      [[ -d "$refs/$dir_name" ]] || hg clone --insecure "$merc_path" "$dir_name"
+      [[ -d "$refs/$dir_name" ]] || hg clone --insecure "$merc_path" "$refs/$dir_name"
       echo "Pulling $dir_name"
       (
         cd "$refs/$dir_name"
-        hg pull --insecure
+        hg update --insecure
       )
     }
 
@@ -53,7 +71,7 @@ case "${1:-}" in
   ;;
   *)
     echo "launch.bash init #download/pull the git repository"
-    echo "launch.bash test #compile the source, and launch it"
+    echo "launch.bash test <num> #launch main with a test"
   ;;
 
 esac
