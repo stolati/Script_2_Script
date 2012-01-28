@@ -23,24 +23,4 @@ if __name__ == "__main__":
   print '#####################  after  #####################'
   print a
 
-
-#test001 :
-#  UIObject = class {
-#      var element
-#
-#      class_new(self){
-#        element = NULL
-#      }
-#
-#      getElement = obj_fct(self){
-#        return self.element
-#      }
-#
-#      setElement = obj_fct(self, element){
-#        self.element = element
-#      }
-#    }
-
-
-
 #__EOF__
