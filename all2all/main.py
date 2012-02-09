@@ -21,6 +21,6 @@ if __name__ == "__main__":
   a.visitWith(parse.WhileRemoveElse())
   a.visitWith(visitor)
   print '#####################  after  #####################'
-  print a
+  print parse.PrintElement(a._content)
 
 #__EOF__

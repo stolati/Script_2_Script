@@ -29,96 +29,77 @@ class NotExistsException(Exception):
 class SimpleElement:
   _fields = []
 
-  def __str__(self): raise NotImplementedError()
-  #return the string passed, indented once, searching for \n char
+  def __init__(self, *args, **kargs):
+    fields = list(self.__class__._fields)
+    try: #simulate args
+      for a in args: setattr(self, fields.pop(0), a)
+    except IndexError:
+      raise TypeError('__init__ takes exacly %s arguments (%s given)' % (len(self._fields), len(args) ))
+    try: #simulate kargs
+      for k, v in kargs.iteritems():
+        fields.remove(k)
+        setattr(self, k, v)
+    except ValueError:
+      raise TypeError("__init__() got an unexpected keyword argument '%s'" % k)
+    if fields: #simulate not enough args
+      got = len(self._fields) - len(fields)
+      raise TypeError('__init__ takes exacly %s arguments (%s given)' % (len(self._fields), got ))
+
   @staticmethod
   def _strIndent(s): return '\n'.join(['|  '+ss for ss in s.split('\n')])
 
-  #return a list of fields in a dict manner
-  def getFields(self): raise NotImplementedError()
 
 
-class Module:
-  _fields = ['body'] #the body is always an ExprList
-  def __init__(self, body): self.body = body
-  def __str__(self): return 'Module %s' % self.body
+class PrintElement:
+  def __init__(self, content):
+    self.content = content
 
-class ExprList:
-  _fields = ['exprs']
-  def __init__(self, exprs): self.exprs = exprs
-  def __str__(self):
-    if not self.exprs: return '{ <Empty> }'
-    return '{\n%s\n}' % SimpleElement._strIndent('\n'.join([str(e) for e in self.exprs]))
+  def ast2str(self, e):
+    return getattr(self, 'str_' + e.__class__.__name__, self.classNotFound)(e)
 
-class Variable:
-  _fields = ['name']
-  def __init__(self, name): self.name = name
-  def __str__(self): return str(self.name)
+  def classNotFound(self, e):
+    print "value not found", 'str_' + e.__class__.__name__,
+    return str(e)
 
-class Assign:
-  _fields = ['target', 'value']
-  def __init__(self, target, value): self.target, self.value = target, value
-  def __str__(self): return '%s = %s' % (self.target, self.value)
+  def __str__(self): return self.ast2str(self.content)
+  def __call__(self, e): return self.ast2str(e)
 
-class Class:
-  _fields = ['body'] #body should only be variables declarations
-  def __init__(self, body): self.body = body
-  def __str__(self): return 'Class %s' % self.body
+  def str_Module(self, e): return 'Module %s' % self(e.body)
+  def str_ExprList(self, e):
+    if not e.exprs: return '{ <Empty> }'
+    return '{\n%s\n}' % SimpleElement._strIndent('\n'.join([self(i) for i in e.exprs]))
+  def str_Variable(self, e): return str(e.name)
+  def str_Assign(self, e): return '%s = %s' % (self(e.target), self(e.value))
+  def str_Class(self, e): return 'Class %s' % self(e.body)
+  def str_Function(self, e): return 'Function%s %s' % (self(e.params), self(e.body))
+  def str_Params(self, e): return '(%s)' % ', '.join(self(i) for i in e.names)
+  def str_Name(self, e): return str(e.id)
+  def str_Attribute(self, e): return '%s.%s' % (self(e.value), self(e.attr))
+  def str_Return(self, e): return 'Return %s' % self(e.value)
+  def str_Call(self, e): return '%s(%s)' % (self(e.func), ', '.join(self(a) for a in e.args))
+  def str_Str(self, e): return '"%s"' % e.s.replace('"', '\\"').replace('\n', '\\n')
+  def str_IfElse(self, e): return 'If(%s) %s else %s' % (self(e.test), self(e.body), self(e.orelse))
+  def str_NoneType(self, e): return "null"
+  def str_While(self, e): return 'While(%s) %s' % (self(e.test), self(e.body))
+  def str_Num(self, e): return 'Num("%s")' % e.n
 
-class Function:
-  _fields = ['params', 'body']
-  def __init__(self, params, body): self.params, self.body = params, body
-  def __str__(self): return 'Function%s %s' % (self.params, self.body)
 
-class Params:
-  _fields = ['names']
-  def __init__(self, names): self.names = names
-  def __str__(self): return '(%s)' % ', '.join(str(e) for e in self.names)
-
-class Name:
-  _fields = ['id']
-  def __init__(self, id): self.id = id
-  def __str__(self): return str(self.id)
-
-class Attribute:
-  _fields = ['value', 'attr']
-  def __init__(self, value, attr): self.value, self.attr = value, attr
-  def __str__(self): return '%s.%s' % (self.value, self.attr)
-
-class Return:
-  _fields = ['value']
-  def __init__(self, value): self.value = value
-  def __str__(self): return 'Return %s' % self.value
-
-class Call:
-  _fields = ['func', 'args']
-  def __init__(self, func, args): self.func, self.args = func, args
-  def __str__(self): return '%s(%s)' % (self.func, ', '.join(str(a) for a in self.args))
-
-class Str:
-  _fields = ['s']
-  def __init__(self, s): self.s = s
-  def __str__(self): return '"%s"' % self.s.replace('"', '\\"').replace('\n', '\\n')
-
-class IfElse:
-  _fields = ['test', 'if', 'orelse']
-  def __init__(self, test, body, orelse): self.test, self.body, self.orelse = test, body, orelse
-  def __str__(self): return 'If(%s) %s else %s' % (self.test, self.body, self.orelse)
-
-class NoneType:
-  _fields = []
-  def __init__(self): pass
-  def __str__(self): return "null"
-
-class While:
-  _fields = ['test', 'body']
-  def __init__(self, test, body): self.test, self.body = test, body
-  def __str__(self): return 'While(%s) %s' % (self.test, self.body)
-
-class Num:
-  _fields = ['n']
-  def __init__(self, n): self.n = n
-  def __str__(self): return 'Num("%s")' % self.n
+class Module(SimpleElement): _fields = ['body'] #the body is always an ExprList
+class ExprList(SimpleElement): _fields = ['exprs']
+class Variable(SimpleElement): _fields = ['name']
+class Assign(SimpleElement): _fields = ['target', 'value']
+class Class(SimpleElement): _fields = ['body']
+class Function(SimpleElement): _fields = ['params', 'body']
+class Params(SimpleElement): _fields = ['names']
+class Name(SimpleElement): _fields = ['id']
+class Attribute(SimpleElement): _fields = ['value', 'attr']
+class Return(SimpleElement): _fields = ['value']
+class Call(SimpleElement): _fields = ['func', 'args']
+class Str(SimpleElement): _fields = ['s']
+class IfElse(SimpleElement): _fields = ['test', 'body', 'orelse']
+class NoneType(SimpleElement): _fields = []
+class While(SimpleElement): _fields = ['test', 'body']
+class Num(SimpleElement): _fields = ['n']
 
 
 #for each element of Python, transform it into an element of SIMPLE
