@@ -242,61 +242,6 @@ class PythonAst2Simple(ast.NodeTransformer):
 
 #NodeTransformer.dump(node, annotate_fields=True, include_attributes=False)
 
-class ForIntoWhile(ast.NodeTransformer):
-
-  def geneVariable(self):
-    if not hasattr(self, 'varNum'): self.varNum = 0
-    self.varNum += 1
-    return 'genVar_%s_%s' % (self.__class__.__name__, self.varNum)
-
-  ##base
-  #for a1 in a2:
-  #  a3
-  #else:
-  #  a4
-
-  ##goal from wikipedia
-  #aIter = iter(a3)
-  #while True:
-  #  try:
-  #    a1 = aIter.next() #python 2.x
-  #    a1 = next(aIter) #python 3.x
-  #  except: StopIteration:
-  #    break
-  #  a3
-  #else:
-  #  a4
-
-
-  def visit_For(self, node):
-    genVar = self.geneVariable()
-
-    return [
-      #geneVar = iter(node.iter)
-      ast.Assign(
-        [Name(genVar)],
-        ast.Call(Name('iter'), [node.iter], [], None, None)
-      ),
-
-      #while True
-      ast.While(Name('True'),
-        [
-          ast.TryExcept( #try:
-            [ast.Assign( #node.target = genVar.next()
-              [node.target],
-              ast.Call(
-                ast.Attribute(Name(genVar), Name('next'), ast.Load()),
-                [], [], None, None
-              )
-            )],
-            #except StopIteration:
-            [ ast.ExceptHandler(Name('StopIteration'), None, [ast.Break()]) ],
-            []
-          )
-        ]+node.body, node.orelse),
-    ]
-
-
 class TrySimplify(ast.NodeTransformer):
   pass
 

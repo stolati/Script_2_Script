@@ -66,6 +66,7 @@ case "$command" in
     git_pull http://git.nuitka.net/Nuitka.git Nuitka
     git_pull git://gitorious.org/shedskin/mainline.git Shedskin
     mercurial_pull https://bitbucket.org/pypy/pypy Pypy
+    mercurial_pull https://mock.googlecode.com/hg mock
 
     ( cd "$refs/Pyjamas" ; python bootstrap.py ; )
 
