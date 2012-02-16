@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import lang.python.ast2simple.parsePython as parse
+import lang.python.ast2simple.transform.forIntoWhile as fiw
 
 #True, False and None are variables
 
@@ -17,8 +18,9 @@ if __name__ == "__main__":
   #print '#####################  before  #####################'
   print a
 
-  a.visitWith(parse.ForIntoWhile())
-  a.visitWith(parse.WhileRemoveElse())
+  a.visitWith(fiw.ForIntoWhile())
+  #a.visitWith(parse.WhileRemoveElse())
+  print a
   a.visitWith(visitor)
   print '#####################  after  #####################'
   print parse.PrintElement(a._content)

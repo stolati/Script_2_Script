@@ -1,15 +1,34 @@
 #!/usr/bin/env python
-import ast, inspect, re
+import ast, inspect, re, mock
+
+
+#call the fct with and without visitor
+#the function must accept at least 1 argument
+#which will be a mock object
+#@param fctOri the originel function reference
+#@param visitor the NodeTransformer visitor object
+#@param *args the args to give to the function
+#@return a tuple of the mock calls list (withoutVisitor, withVisitor)
+def callOnBoth(fctOri, visitor, *args):
+  mOri = mock.Mock()
+  fctOri(mOri, *args) #test the original function
+  resOri = mOri.call_args_list
+
+  mGoal = mock.Mock()
+  fctGoal = visitMethod(fctOri, visitor)
+  fctGoal(mGoal, *args)
+  resGoal = mGoal.call_args_list
+
+  return (resOri, resGoal)
 
 
 def visitMethod(method, *visitors):
-  mvu = MethodVisitUrl(method)
+  mvu = MethodVisitUtil(method)
   for v in visitors: mvu.visitWith(v)
-  print mvu
   return mvu.getFct()
 
 
-class MethodVisitUrl(object):
+class MethodVisitUtil(object):
   def __init__(self, method):
     self._method = method
     self._method_name = method.func_name
@@ -19,6 +38,8 @@ class MethodVisitUrl(object):
     src = inspect.getsource(self._method)
     srcClean = self.unindent(src)
     return ast.parse(srcClean)
+
+  def getAst(self): return self._ast
 
   #unindent to the maximal a string
   #it use the first line as the level 0
@@ -57,6 +78,9 @@ class MethodVisitUrl(object):
 
   def __str__(self):
     return '<%s %s>' % (self.__class__.__name__, ast.dump(self._ast.body[0]))
+
+
+
 
 
 #__EOF__

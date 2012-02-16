@@ -1,58 +1,183 @@
 #!/usr/bin/env python
 
-from nodeTransformer import *
+from ast import *
+import nodeTransformer
+
+#TODO move this to the documentation
+#expr_context from name is in thoses cases :
+#Load : print a
+#Store : a = 2
+#Del : del a
+#Param : def f(a): pass
+#AugLoad, AugStore not used
+#TODO end
+
+
+#the for is a semi-complexe stuff
+#it could be summarised as :
+##base
+#for a1 in a2:
+#  a3
+#else:
+#  a4
+
+#The iterator from a2 is taken with the iter() function
+#The "else" cause is only executed when for exit without break
+#It's the same stuff than the while statement
+
+##goal from wikipedia
+#aIter = iter(a3)
+#while True:
+#  try:
+#    a1 = aIter.next() #python 2.x
+#    a1 = next(aIter) #python 3.x
+#  except: StopIteration:
+#    break
+#  a3
+#else:
+#  a4
+
+#but it don't work because of the stop, which bypass the else cause each times
+#this version seems more good, at the cost of a variable
+
+#continueIter = True
+#aIter = iter(a3)
+#while continueIter:
+#  try:
+#    a1 = aIter.next() #python 2.x
+#    a1 = next(aIter) #python 3.x
+#  except: StopIteration:
+#    continueIter = False
+#  if not continueIter:
+#    a3
+#else:
+#  a4
+
+
+
+#search for a break method inside a for element
+#use the inside function
+class HaveBreak(NodeVisitor):
+  class HaveBreakException(Exception): pass
+
+  def visit_Break(self, node): raise HaveBreak.HaveBreakException()
+  def visit_For(self, node): return #don't look for inside For
+  def visit_While(self, node): return #don't look for inside While
+
+  #return if there is a break inside a For ast statement
+  #Should be a For element
+  @staticmethod
+  def inside(node):
+    assert isinstance(node, For)
+    try:
+      for subNode in node.body:
+        HaveBreak().visit(subNode)
+    except HaveBreak.HaveBreakException:
+      return True
+    return False
+
 
 #transforme in an ast nodes
 #each for loops into a while equivalent loops
-class ForIntoWhile(NodeTransformer):
+class ForIntoWhile(nodeTransformer.NodeTransformer):
 
-  ##base
-  #for a1 in a2:
-  #  a3
-  #else:
-  #  a4
+  #TODO use a more complete inspection
+  #TODO use two replace for the for element
+  def breakNElse(self, for_node):
+    """Tell if a node use the breakNelse statements"""
+    assert isinstance(for_node, For)
+    return bool(for_node.orelse) and HaveBreak.inside(for_node)
 
-  ##goal from wikipedia
+  def prepareTargets(self, targets):
+    if isinstance(targets, Name): return [targets]
+    return targets
+
+
+  #TODO opti : if the for is empty, change the stuff
+
+  def visit_For(self, node):
+
+    #prepare the For statement
+    f_target = self.visit(node.target)
+    f_iter = self.visit(node.iter)
+    f_body = [self.visit(e) for e in node.body]
+    f_orelse = [self.visit(e) for e in node.orelse]
+    f = For(f_target, f_iter, f_body, f_orelse)
+
+    if self.breakNElse(f):
+      pass
+
+    return self._genComplexFor(node)
+
+
+  #from a For, generate a simple while
+  #it must not have a break linked to the else
+  def _genSimpleFor(self, node):
+    return node
+
+  #from a Fro, generate a full while
+  #it can have a break linked to the else
+  #
+  #continueIter = True
   #aIter = iter(a3)
-  #while True:
+  #while continueIter:
   #  try:
   #    a1 = aIter.next() #python 2.x
   #    a1 = next(aIter) #python 3.x
   #  except: StopIteration:
-  #    break
-  #  a3
+  #    continueIter = False
+  #  else:
+  #    a3
   #else:
   #  a4
+  #
+  def _genComplexFor(self, node):
+    aIter = self.geneVariable()
+    continueIter = self.geneVariable()
 
-
-  def visit_For(self, node):
-    genVar = self.geneVariable()
-
-    return [
-      #geneVar = iter(node.iter)
-      ast.Assign(
-        [Name(genVar)],
-        ast.Call(Name('iter'), [node.iter], [], None, None)
+    res = [
+      #continueIter = True
+      Assign(
+        [Name(continueIter, Store())],
+        Name('True', Load()),
       ),
-
-      #while True
-      ast.While(Name('True'),
+      #aIter = iter(a3)
+      Assign(
+        [Name(aIter, Store())],
+        Call(Name('iter', Load()), [node.iter], [], None, None),
+      ),
+      #while continueIter:
+      While( Name(continueIter, Load()),
         [
-          ast.TryExcept( #try:
-            [ast.Assign( #node.target = genVar.next()
-              [node.target],
-              ast.Call(
-                ast.Attribute(Name(genVar), Name('next'), ast.Load()),
+          #try
+          TryExcept(
+            #a1 = aIter.next()
+            [Assign(
+              self.prepareTargets(node.target),
+              Call(
+                Attribute(Name(aIter, Load()), 'next', Load()),
                 [], [], None, None
-              )
+              ),
             )],
-            #except StopIteration:
-            [ ast.ExceptHandler(Name('StopIteration'), None, [ast.Break()]) ],
-            []
-          )
-        ]+node.body, node.orelse),
+            #except: StopIteration:
+            [ ExceptHandler(Name('StopIteration', Load()), None, [
+              #continueIter = False
+              Assign(
+                [Name(continueIter, Store())],
+                Name('False', Load()),
+              )
+            ]) ],
+          []),
+          #if not continueIter: a3
+          If( UnaryOp(Not(), Name(continueIter, Load())),
+            node.body,
+          [])
+        ],
+        #else: a4
+        node.orelse,
+      ),
     ]
 
+    return res
 
-if __name__ == "__main__": print "hello"
-
+#__EOF__
