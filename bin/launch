@@ -87,8 +87,13 @@ case "$command" in
     )
   ;;
 
+  pylint) #launch pylint on the code
+   pylint --rcfile="$all2all_path/pylint.conf" "$all2all_path/code/all2all" "$all2all_path/code/test"
+   #TODO idea is to use the -e arguments
+   #TODO use -d instead, some errors are no worth using
 
 
+  ;;
   *)
     echo "launch.bash init #download/pull the git repository"
     echo "launch.bash test <num> #launch main with a test"
