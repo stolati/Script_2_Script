@@ -58,10 +58,12 @@ class TestForIntoWhile(unittest.TestCase):
       self.assertEqual(res, expectedRes, "failed on function %s" % k.func_name)
 
   def dualTestFct(self, fctOri, *args):
-    print 'testing %s' % fctOri.func_name
     resOri, resVisited = callOnBoth(fctOri, ForIntoWhile(), *args)
-    if resOri == resVisited : print 'All is OK'
-    else: print 'result : %s \n %s' % (resOri, resVisited)
+
+    if resOri != resVisited:
+      print 'testing %s' % fctOri.func_name
+      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
+
     self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
 
   def checkFctOnLocals(self, locals_values, *args):
@@ -75,7 +77,7 @@ class TestForIntoWhile(unittest.TestCase):
 
     def for_simple(m, l):
       m('begin')
-      for e in l:
+      for e in list(l):
         m(e)
       else: m('else')
       m('end')
@@ -93,7 +95,7 @@ class TestForIntoWhile(unittest.TestCase):
     self.checkFctOnLocals(locals(), range(10))
     self.checkFctOnLocals(locals(), list())
 
-  def test_complexFor_iter(self): #TODO
+  def test_complexFor_iter(self):
 
     def for_simple(m, l):
       m('begin')
@@ -307,7 +309,15 @@ class TestForIntoWhile(unittest.TestCase):
 
     self.checkFctOnLocals(locals())
 
-    #TODO test with a multiple values assign
+  def test_multipleAffectation(self):
+
+    def for_multi_affectation(m):
+      m('begin')
+      for i, j, k, l, a in ("12345",):
+        m([i, j, k, l, a])
+      m('end')
+
+    self.checkFctOnLocals(locals())
 
 
 if __name__ == "__main__":

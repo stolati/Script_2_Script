@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ast import *
+import ast
 import nodeTransformer
 
 #TODO move this to the documentation
@@ -88,10 +89,6 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
     assert isinstance(for_node, For)
     return bool(for_node.orelse) and HaveBreak.inside(for_node)
 
-  def prepareTargets(self, targets):
-    if isinstance(targets, Name): return [targets]
-    return targets
-
 
   #TODO opti : if the for is empty, change the stuff
 
@@ -105,15 +102,70 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
     f = For(f_target, f_iter, f_body, f_orelse)
 
     if self.breakNElse(f):
-      pass
-
-    return self._genComplexFor(node)
+      return self._genComplexFor(node)
+    return self._genSimpleFor(node)
 
 
   #from a For, generate a simple while
   #it must not have a break linked to the else
+  #it never use break, and always execute the else
+  #
+  #continueIter = True
+  #aIter = iter(a3)
+  #while continueIter:
+  #  try:
+  #    a1 = aIter.next() #python 2.x
+  #    a1 = next(aIter) #python 3.x
+  #  except: StopIteration:
+  #    continueIter = False
+  #  else:
+  #    a3
+  #else:
+  #  a4
+  #
   def _genSimpleFor(self, node):
-    return node
+    aIter = self.geneVariable()
+    continueIter = self.geneVariable()
+
+    res = [
+      #aIter = iter(a3)
+      Assign(
+        [Name(aIter, Store())],
+        Call(Name('iter', Load()), [node.iter], [], None, None),
+      ),
+      #while continueIter:
+      While( Name('True', Load()),
+        [
+          #try
+          TryExcept(
+            #a1 = aIter.next()
+            [Assign(
+              [node.target],
+              Call(
+                Attribute(Name(aIter, Load()), 'next', Load()),
+                [], [], None, None
+              ),
+            )],
+            #except: StopIteration:
+            [ ExceptHandler(Name('StopIteration', Load()), None, [
+              #continueIter = False
+              Break(),
+            ]) ],
+          []),
+          #a3
+        ] + node.body,
+        [],
+      ),
+      #a4
+    ] + node.orelse
+
+    return res
+
+
+
+
+
+
 
   #from a Fro, generate a full while
   #it can have a break linked to the else
@@ -153,7 +205,7 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
           TryExcept(
             #a1 = aIter.next()
             [Assign(
-              self.prepareTargets(node.target),
+              [node.target],
               Call(
                 Attribute(Name(aIter, Load()), 'next', Load()),
                 [], [], None, None
@@ -169,7 +221,7 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
             ]) ],
           []),
           #if not continueIter: a3
-          If( UnaryOp(Not(), Name(continueIter, Load())),
+          If( Name(continueIter, Load()),
             node.body,
           [])
         ],
