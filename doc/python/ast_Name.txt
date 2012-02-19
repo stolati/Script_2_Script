@@ -1,0 +1,10 @@
+The name is used in different cases :
+
+Load : print a
+Store : a = 2
+Del : del a
+Param : def f(a): pass
+
+AugLoad and AugStore are not used.
+I forced the test into astPrint.
+

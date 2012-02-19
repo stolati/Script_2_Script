@@ -68,7 +68,8 @@ class Print_python:
     return '('+', '.join(res)+')'
 
   def str_Name(self, e):
-    assert e.ctx.__class__ in [ast.Load, ast.Store, ast.Del, ast.Param]
+    #forced test for my knowledge
+    assert e.ctx.__class__ not in [ast.AugLoad, ast.AugStore]
     return e.id
   def str_Return(self, e): return 'return %s' % self(e.value)
   def str_Attribute(self, e): return '%s.%s' % (self(e.value), e.attr)
