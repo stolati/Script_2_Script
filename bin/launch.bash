@@ -19,6 +19,15 @@ case "$command" in
 
   test) #launch main with a test
     testNum="${1:-}"
+
+    if [[ $testNum = "all" ]] ; then
+      i=1 ; while [[ $i -lt 48 ]]; do
+        launch.bash test $i || true
+        let i+=1
+        read
+      done
+    fi
+
     listTests(){ #<filtre>
       ls "$all2all_path/tests" | grep '.py$' | grep "${1:-}" | head -1
     }
