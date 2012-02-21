@@ -2,7 +2,7 @@
 import unittest, types, mock
 import sys
 
-from all2all.lang.python.ast2simple.transform.methodVisitUtil import MethodVisitUtil, callOnBoth
+from methodVisitUtil import MethodVisitUtil, callOnBoth
 from all2all.lang.python.ast2simple.transform.forIntoWhile import ForIntoWhile, HaveBreak
 
 

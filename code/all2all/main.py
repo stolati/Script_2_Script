@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import sys
 import lang.python.ast2simple.parsePython as parse
+
 import lang.python.ast2simple.transform.forIntoWhile as fiw
+import lang.python.ast2simple.transform.whileSimplifier as ws
 
 #True, False and None are variables
 

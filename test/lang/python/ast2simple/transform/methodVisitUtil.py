@@ -64,7 +64,7 @@ class MethodVisitUtil(object):
 
   def visitWith(self, visitor):
     self._ast = visitor.visit(self._ast)
-    ast.fix_missing_locations(self._ast)
+    self._ast = ast.fix_missing_locations(self._ast)
 
   def getFct(self):
     compiled = compile(self._ast, '<string>', 'exec')

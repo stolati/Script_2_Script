@@ -12,6 +12,8 @@ input="$all2all_path/input"
 output="$all2all_path/output"
 tmp="$all2all_path/tmp"
 
+launch_exe="$0"
+
 command="${1:-}"
 shift || true
 
@@ -22,17 +24,17 @@ case "$command" in
 
     if [[ $testNum = "all" ]] ; then
       i=1 ; while [[ $i -lt 48 ]]; do
-        launch.bash test $i || true
+        $launch_exe test $i || true
         let i+=1
         read
       done
     fi
 
     listTests(){ #<filtre>
-      ls "$all2all_path/tests" | grep '.py$' | grep "${1:-}" | head -1
+      ls "$all2all_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
     }
     file="$(listTests "$testNum")"
-    "$all2all_path/all2all/main.py" "$all2all_path/tests/$file"
+    "$all2all_path/code/all2all/main.py" "$all2all_path/files_tests/$file"
   ;;
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
@@ -95,9 +97,10 @@ case "$command" in
 
   ;;
   *)
-    echo "launch.bash init #download/pull the git repository"
-    echo "launch.bash test <num> #launch main with a test"
-    echo "launch.bash tests #launch unittest modules"
+    echo "$launch_exe init #download/pull the git repository"
+    echo "$launch_exe test <num> #launch main with a test"
+    echo "$launch_exe tests #launch unittest modules"
+    echo "$launch_exe pylint #launch pylint on all the files"
   ;;
 
 esac
