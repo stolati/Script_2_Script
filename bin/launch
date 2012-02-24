@@ -94,13 +94,16 @@ case "$command" in
    #TODO idea is to use the -e arguments
    #TODO use -d instead, some errors are no worth using
 
-
+  ;;
+  list)
+    find "$all2all_path/code" "$all2all_path/test" -name '*.py' | grep -v __init__
   ;;
   *)
     echo "$launch_exe init #download/pull the git repository"
     echo "$launch_exe test <num> #launch main with a test"
     echo "$launch_exe tests #launch unittest modules"
     echo "$launch_exe pylint #launch pylint on all the files"
+    echo "$launch_exe list #list python files in the project"
   ;;
 
 esac
