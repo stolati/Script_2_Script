@@ -10,7 +10,7 @@ class Cdt:
     def __init__(self, n):
         self._n = n
         self._c = 0
-  
+
     def __call__(self):
         self._c +=1
         return self._n <= self._c
@@ -83,19 +83,19 @@ class TestWhileSimplifier(unittest.TestCase):
       if k.startswith('while_') and isinstance(v, types.FunctionType):
         self.dualTestFct(v, *args)
 
-        
+
   #test differents flow
   def test_simpleWhile_flow(self):
 
     def while_empty(m, Cdt):
       m('begin')
-      c = Cdt(10) 
+      c = Cdt(10)
       while c(): pass
       m('end')
 
     def while_simple(m, Cdt):
       m('begin')
-      c = Cdt(10) 
+      c = Cdt(10)
       while c(): m()
       m('end')
 
