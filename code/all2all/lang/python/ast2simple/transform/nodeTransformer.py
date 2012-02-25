@@ -18,7 +18,7 @@ class NodeTransformer(object):
       tmpRes = self.visit(node)
       if isinstance(tmpRes, ast.AST):
           res.append(tmpRes)
-      elif isinstance(tmpRes, list): #because changing node can return list
+      elif hasattr(tmpRes, '__iter__'): #because changing node can return list
           res += tmpRes
       else:
           raise Exception("bad node type, waiting for list or node")

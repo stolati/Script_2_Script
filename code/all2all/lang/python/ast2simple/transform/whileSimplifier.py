@@ -74,8 +74,9 @@ class WhileSimplifier(nodeTransformer.NodeTransformer):
   #   a3
   def _genComplexWhile(self, node):
       goElse = self.geneVariable()
-      beforeBreak = Assign([Name(goElse, Store())], Name('False', Load()))
-      chgBreakVisitor = AddIf2Break([beforeBreak])
+      def beforeBreakFactory():
+        return [Assign([Name(goElse, Store())], Name('False', Load()))]
+      chgBreakVisitor = AddIf2Break(beforeBreakFactory)
 
       return [
         #hadBreak = False
@@ -86,7 +87,7 @@ class WhileSimplifier(nodeTransformer.NodeTransformer):
         #while a1
         While(
             node.test,
-            [chgBreakVisitor.visit(e) for e in node.body],
+            chgBreakVisitor.visit(node.body),
             [],
         ),
         #if hadBreak : a3
@@ -101,14 +102,20 @@ class WhileSimplifier(nodeTransformer.NodeTransformer):
 #for the complexe while replacing
 #set a value if a break is executed
 class AddIf2Break(nodeTransformer.NodeTransformer):
-  def __init__(self, beforeNodes):
-      self._beforeNodes = beforeNodes #nodes to add before the break statement
+  def __init__(self, beforeNodesFactory):
+      self._bnf = beforeNodesFactory #nodes to add before the break statement
 
   #don't wisit loops under this one, (the break variable is different)
-  def visit_For(self, node): return node
-  def visit_While(self, node): return node
+  #def visit_For(self, node): return node
+  #def visit_While(self, node): return node
 
-  def visit_Break(self, node): return self._beforeNodes + [node]
+  def visit(self, node):
+    res = nodeTransformer.NodeTransformer.visit(self, node)
+    return res
+
+  def visit_Break(self, node):
+    res = self._bnf() + [node]
+    return res
 
 
 #__EOF__
