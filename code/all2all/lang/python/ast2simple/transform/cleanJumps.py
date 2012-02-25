@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-import itertools
+import ast
+from nodeTransformer import NodeTransformer
 
-#Remove dead code :
+#Remove jumps command dead code :
 # The code immediatly after thoses can't execute :
 # after return
 # after break
@@ -11,30 +12,20 @@ import itertools
 
 class CleanJumps(NodeTransformer):
 
+  #each node containing code have it in list form
+  #so we filter code-containing-node by entering in the visitList fct
+  #more node have list than only statements, but they should not contain return/continue/break
   def visitList(self, nodeList):
-    res = super(NodeTransformer, self).visitList(nodeList)
-    return itertools.takewhile(lambda x: not isintance(x, ast.Break), res)
+    res = NodeTransformer.visitList(self, nodeList)
 
+    resBis = []
+    for node in res:
+      resBis.append(node)
+      if isinstance(node, ast.Return): return resBis
+      if isinstance(node, ast.Continue): return resBis
+      if isinstance(node, ast.Break): return resBis
 
-  def visitList(self, nodeList):
-    res = []
-    for node in nodeList
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return resBis
 
 
 

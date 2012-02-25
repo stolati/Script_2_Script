@@ -1,332 +1,90 @@
-##!/usr/bin/env python
-#import unittest, types, mock
-#import sys
-#
-#from methodVisitUtil import MethodVisitUtil, callOnBoth
-#from all2all.lang.python.ast2simple.transform.forIntoWhile import ForIntoWhile, HaveBreak
-#
-#
-#
-#
-#class TestHaveBreak(unittest.TestCase):
-#
-#  #test functions, not created to be launched
-#  def forWithElse():
-#    for e in v: d()
-#    else: d()
-#
-#  def forWithBreak():
-#    for e in ve: d(); break
-#
-#  def forWithBoth():
-#    for e in ve: d(); break
-#    else: d()
-#
-#  def forComplexeWithout():
-#    for e in ve:
-#      for i in vi:
-#        if a : break
-#      while c:
-#        if f: break;
-#    else: d()
-#
-#  def test_haveBreak(self):
-#    testCases = [
-#        (TestHaveBreak.forWithElse, False),
-#        (TestHaveBreak.forWithBreak, True),
-#        (TestHaveBreak.forWithBoth, True),
-#        (TestHaveBreak.forComplexeWithout, False),
-#    ]
-#
-#    for k, expectedRes in testCases:
-#      mvu = MethodVisitUtil(k)
-#      for_ast = mvu.getAst().body[0].body[0]
-#      res = HaveBreak.inside(for_ast)
-#      self.assertEqual(res, expectedRes, "failed on function %s" % k.func_name)
-#
-#
-#class TestForIntoWhile(unittest.TestCase):
-#
-#  def test_breakNElse(self):
-#    testCases = [
-#        (TestHaveBreak.forWithElse, False),
-#        (TestHaveBreak.forWithBreak, False),
-#        (TestHaveBreak.forWithBoth, True),
-#        (TestHaveBreak.forComplexeWithout, False),
-#    ]
-#
-#    for k, expectedRes in testCases:
-#      mvu = MethodVisitUtil(k)
-#      for_ast = mvu.getAst().body[0].body[0]
-#      res = ForIntoWhile().breakNElse(for_ast)
-#      self.assertEqual(res, expectedRes, "failed on function %s" % k.func_name)
-#
-#  def dualTestFct(self, fctOri, *args):
-#    resOri, resVisited = callOnBoth(fctOri, ForIntoWhile(), *args)
-#
-#    if resOri != resVisited:
-#      print 'testing %s' % fctOri.func_name
-#      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
-#
-#    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
-#
-#  def checkFctOnLocals(self, locals_values, *args):
-#    for k, v in locals_values.iteritems():
-#      if k.startswith('for_') and isinstance(v, types.FunctionType):
-#        self.dualTestFct(v, *args)
-#
-#
-#  #test different iterator in for
-#  def test_simpleFor_iter(self): #TODO
-#
-#    def for_simple(m, l):
-#      m('begin')
-#      for e in list(l):
-#        m(e)
-#      else: m('else')
-#      m('end')
-#
-#    def for_continue(m, l):
-#      m('begin')
-#      for e in l:
-#        m(e)
-#        continue
-#        m('ko')
-#      else: m('else')
-#      m('end')
-#
-#
-#    self.checkFctOnLocals(locals(), range(10))
-#    self.checkFctOnLocals(locals(), list())
-#
-#  def test_complexFor_iter(self):
-#
-#    def for_simple(m, l):
-#      m('begin')
-#      for e in l:
-#        m(e)
-#        if False: break
-#        m(e)
-#      else: m('else')
-#      m('end')
-#
-#    def for_continue(m, l):
-#      m('begin')
-#      for e in l:
-#        m(e)
-#        if False: break
-#        m(e)
-#        continue
-#        m('ko')
-#      else: m('else')
-#      m('end')
-#
-#    self.checkFctOnLocals(locals(), range(10))
-#    self.checkFctOnLocals(locals(), list())
-#
-#
-#  #test differents flow
-#  def test_simpleFor_flow(self):
-#
-#    def for_empty(m):
-#      m('begin')
-#      for i in range(10): pass
-#      m('end')
-#
-#    def for_nil(m):
-#      m('begin')
-#      for i in []: m()
-#      m('end')
-#
-#    def for_simple(m):
-#      m('begin')
-#      for i in range(10): m(i)
-#      m('end')
-#
-#    def for_emptyElse(m):
-#      m('begin')
-#      for i in range(10): pass
-#      else: m('else')
-#      m('end')
-#
-#    def for_nilElse(m):
-#      m('begin')
-#      for i in []: m()
-#      else: m('else')
-#      m('end')
-#
-#    def for_simpleElse(m):
-#      m('begin')
-#      for i in range(10): m(i)
-#      else: m('else')
-#      m('end')
-#
-#    def for_break(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i > 5: break
-#        m(i)
-#      m('end')
-#
-#    def for_continue(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i < 2: continue
-#        m(i)
-#        if i > 5: continue
-#        m(i)
-#      m('end')
-#
-#    def for_continue_break(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i < 2: continue
-#        m(i)
-#        if i > 5: break
-#        m(i)
-#      m('end')
-#
-#    def for_multi(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i, 'begin')
-#        for j in range(10):
-#          m(i, j)
-#        m(i, 'end')
-#      m('end')
-#
-#    self.checkFctOnLocals(locals())
-#
-#  def test_complexFor(self):
-#
-#    def for_empty(m):
-#      m('begin')
-#      for i in range(10): m('break'); break; m('ko')
-#      else: m('else')
-#      m('end')
-#
-#    def for_nil(m):
-#      m('begin')
-#      for i in []: m(); break; m('ko')
-#      else: m('else')
-#      m('end')
-#
-#    def for_simple(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if False: break
-#      else: m('else')
-#      m('end')
-#
-#    def for_break(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i > 5: m('break'); break; m('ko')
-#        m(i)
-#      else: m('titi')
-#      m('end')
-#
-#    def for_continue(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i < 2: m('continue'); continue
-#        if False: m('break'); break; m('ko')
-#        m(i)
-#        if i > 5: m('continue'); continue
-#        m(i)
-#      else:
-#        m('tutu')
-#      m('end')
-#
-#    def for_continue_break(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i)
-#        if i < 2: continue
-#        m(i)
-#        if i > 5: break
-#        m(i)
-#      else: m('else')
-#      m('end')
-#
-#    def for_multi_onlyBreak(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i, 'begin')
-#        if i > 5: m('break 2'); break
-#        m('no break')
-#        for j in range(10):
-#          if j > 4: m('break 2'); break
-#          m(i, j)
-#        else: m('else 2')
-#        m(i, 'end')
-#      else: m('else 1')
-#      m('end')
-#
-#    def for_multi_oneBreak1(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i, 'begin')
-#        if i > 5: m('break 2'); break
-#        m('no break')
-#        for j in range(10):
-#          if False: m('break 2'); break
-#          m(i, j)
-#        else: m('else 2')
-#        m(i, 'end')
-#      else: m('else 1')
-#      m('end')
-#
-#    def for_multi_oneBreak2(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i, 'begin')
-#        if False: m('break 2'); break
-#        m('no break')
-#        for j in range(10):
-#          if j > 4: m('break 2'); break
-#          m(i, j)
-#        else: m('else 2')
-#        m(i, 'end')
-#      else: m('else 1')
-#      m('end')
-#
-#    def for_multi_noBreak(m):
-#      m('begin')
-#      for i in range(10):
-#        m(i, 'begin')
-#        if False: m('break 2'); break
-#        m('no break')
-#        for j in range(10):
-#          if False: m('break 2'); break
-#          m(i, j)
-#        else: m('else 2')
-#        m(i, 'end')
-#      else: m('else 1')
-#      m('end')
-#
-#    self.checkFctOnLocals(locals())
-#
-#  def test_multipleAffectation(self):
-#
-#    def for_multi_affectation(m):
-#      m('begin')
-#      for i, j, k, l, a in ("12345",):
-#        m([i, j, k, l, a])
-#      m('end')
-#
-#    self.checkFctOnLocals(locals())
-#
-#
-#if __name__ == "__main__":
-#  unittest.main()
-#
-#
-#
-##__EOF__
+#!/usr/bin/env python
+import unittest, types, mock
+import sys
+
+from all2all.lang.python.ast2simple.transform.cleanJumps import CleanJumps
+from methodVisitUtil import callOnBoth
+
+class Test_CleanJumps(unittest.TestCase):
+
+  def dualTestFct(self, fctOri, *args):
+    resOri, resVisited = callOnBoth(fctOri, CleanJumps(), *args)
+
+    if resOri != resVisited:
+      print 'testing %s' % fctOri.func_name
+      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
+
+    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
+
+  def checkFctOnLocals(self, locals_values, *args):
+    for k, v in locals_values.iteritems():
+      if k.startswith('test_') and isinstance(v, types.FunctionType):
+        self.dualTestFct(v, *args)
+
+  def test_return(self):
+    """ """
+
+    def test_empty(m): pass
+
+    def test_no_return(m): m('no_return')
+
+    def test_simple_return(m): m('1'); return; m('2')
+
+    def test_return_value(m): m('1'); return 3; m('2')
+
+    self.checkFctOnLocals(locals())
+
+  def test_continue(self):
+
+    def test_no_continue(m): pass
+
+    def test_continue(m):
+      m('begin')
+      for i in range(10):
+        m(i); continue; m(i)
+      m('end')
+
+    def test_continue_if(m):
+      m('begin')
+      for i in range(10):
+        m(i)
+        if False: continue
+        m(i)
+      m('middle')
+      for j in range(10):
+        m(i)
+        if True: continue
+        m(i)
+      m('end')
+
+    self.checkFctOnLocals(locals())
+
+  def test_break(self):
+
+    def test_no_break(m): pass
+
+    def test_break(m):
+      m('begin')
+      for i in range(10):
+        m(i); break; m(i)
+      m('end')
+
+    def test_break_if(m):
+      m('begin')
+      for i in range(10):
+        m(i)
+        if False: break
+        m(i)
+      m('middle')
+      for j in range(10):
+        m(i)
+        if True: break
+        m(i)
+      m('end')
+
+    self.checkFctOnLocals(locals())
+
+if __name__ == "__main__":
+  unittest.main()
+
+#__EOF__
