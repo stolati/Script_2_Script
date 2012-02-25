@@ -23,15 +23,6 @@ It's interesting to load all the code once, then perfom the optimisation on them
 Each node should have maximal 3 elements on the simple stuffs
 
 
-- Transforme 1 test into python ast
-- Do an ast tranformation on this python ast
-- transforme python ast into simple
-- get the simple and return javascript
-- do 2 more tests
-- do 3 more tests
-- do 4 more tests
-- do 5 more tests
-... Unil all done
 
 
 
@@ -84,16 +75,12 @@ Code :
  - Source by module
    - Modules = [expressions]
      - expression have the source line information
+
 #
 #TODO :
-# - test on the foreach modifier
-# - do a metaclass for SimpleElement
-# - do a whileremoveElse
-# - do a test case for whileRemoveElse
-# - main pass for each tests
-# - simplifier le try
-# - do a test case for try
-
+# - do a try except (with tests)
+# - do a stuff for AugAssign (with tests)
+#
 
 
 #__EOF__
