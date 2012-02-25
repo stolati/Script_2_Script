@@ -84,7 +84,7 @@ case "$command" in
 
   tests) #launch the unittest
     (
-      name="test*${0:-}*.py"
+      name="test*${1:-}*.py"
       cd "$all2all_path/test" #change in case of access by absolute
       python -m unittest discover -s "$all2all_path/test" -v -p "$name"
 
