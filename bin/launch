@@ -84,8 +84,10 @@ case "$command" in
 
   tests) #launch the unittest
     (
+      name="test*${0:-}*.py"
       cd "$all2all_path/test" #change in case of access by absolute
-      python -m unittest discover -s "$all2all_path/test" -v
+      python -m unittest discover -s "$all2all_path/test" -v -p "$name"
+
     )
   ;;
 
@@ -101,7 +103,7 @@ case "$command" in
   *)
     echo "$launch_exe init #download/pull the git repository"
     echo "$launch_exe test <num> #launch main with a test"
-    echo "$launch_exe tests #launch unittest modules"
+    echo "$launch_exe tests [name] #launch unittest modules"
     echo "$launch_exe pylint #launch pylint on all the files"
     echo "$launch_exe list #list python files in the project"
   ;;
