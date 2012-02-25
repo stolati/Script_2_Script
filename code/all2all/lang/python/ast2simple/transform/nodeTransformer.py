@@ -18,7 +18,7 @@ class NodeTransformer(object):
       tmpRes = self.visit(node)
       if isinstance(tmpRes, ast.AST):
           res.append(tmpRes)
-      elif isinstance(tmpRes, list):
+      elif isinstance(tmpRes, list): #because changing node can return list
           res += tmpRes
       else:
           raise Exception("bad node type, waiting for list or node")
@@ -27,20 +27,27 @@ class NodeTransformer(object):
 
   #redefined this because of the list no-taken into account
   def visit(self, node):
-      if isinstance(node, list):
-          return self.visitList(node)
-
+    #usual case first
+    if isinstance(node, ast.AST):
       nodeName = 'visit_' + node.__class__.__name__
       if hasattr(self, nodeName):
           return getattr(self, nodeName)(node)
       else:
           return self.generic_visit(node)
 
+    #special cases
+    if node is None : return node
+    if isinstance(node, str): return node
+    if isinstance(node, int): return node
+    if hasattr(node, '__iter__'): return self.visitList(node)
+
+    assert False
+
   def generic_visit(self, node):
     if isinstance(node, ast.AST):
       for f in node._fields:
           attr = getattr(node, f)
-          self.visit(attr)
+          attr = self.visit(attr)
           setattr(node, f, attr)
       return node
     elif isinstance(node, str):
