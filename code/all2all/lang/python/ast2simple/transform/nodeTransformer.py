@@ -44,14 +44,16 @@ class NodeTransformer(object):
     assert False
 
   def generic_visit(self, node):
-    if isinstance(node, ast.AST):
-      for f in node._fields:
-          attr = getattr(node, f)
-          attr = self.visit(attr)
-          setattr(node, f, attr)
-      return node
-    elif isinstance(node, str):
-      return node
+    assert isinstance(node, ast.AST)
+    for f in node._fields:
+        setattr(node, f, self.visit(getattr(node, f)))
+    return node
+
+
+  def isEmpty(self, node):
+    if not node: return True
+    if not hasattr(node, '__iter__'): return False
+    return len(node) == 1 and isinstance(node[0], ast.Pass)
 
 
 #__EOF__
