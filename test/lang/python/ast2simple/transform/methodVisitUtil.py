@@ -11,12 +11,18 @@ import ast, inspect, re, mock
 #@return a tuple of the mock calls list (withoutVisitor, withVisitor)
 def callOnBoth(fctOri, visitor, *args):
   mOri = mock.Mock()
-  fctOri(mOri, *args) #test the original function
+  try:
+    fctOri(mOri, *args) #test the original function
+  except Exception as e:
+    mOri(e)
   resOri = mOri.call_args_list
 
   mGoal = mock.Mock()
   fctGoal = visitMethod(fctOri, visitor)
-  fctGoal(mGoal, *args)
+  try:
+    fctGoal(mGoal, *args)
+  except Exception as e:
+    mGoal(e)
   resGoal = mGoal.call_args_list
 
   return (resOri, resGoal)
