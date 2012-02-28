@@ -109,6 +109,40 @@ class TestTrySimplifier(unittest.TestCase):
         m('finally')
       m('end')
 
+    def test_else_noFinally(m, e):
+      m('begin')
+      try:
+        m('try')
+      except:
+        m('except')
+      else:
+        m('else')
+      m('end')
+
+    def test_else_noFinally(m, e):
+      m('begin')
+      try:
+        pass
+      except:
+        m('except')
+      else:
+        m('else')
+      m('end')
+
+    def test_else_noFinally(m, e):
+      m('begin')
+      try:
+        m('try')
+      except:
+        m('except')
+      else:
+        m('else')
+        raise e
+        m('error')
+      finally:
+        m('finally')
+      m('end')
+
     self.checkFctOnLocals(locals(), Exception())
 
 

@@ -204,6 +204,18 @@ from all2all.lang.python.ast2simple.astPrint import Print_python
 #we have to think about the Raise(type, inst, tback) element
 
 
+def log(fct):
+  def f(*args, **kargs):
+    print args
+    res = fct(*args, **kargs)
+    print 'res = ', Print_python(res)
+    return res
+
+  return f
+
+
+
+
 
 class TrySimplifier(nodeTransformer.NodeTransformer):
 
@@ -258,41 +270,77 @@ class TrySimplifier(nodeTransformer.NodeTransformer):
     return [myHdl]
 
 
-
+  #@log
   def _generate(self, body, handlers, orelse, finalbody):
     #pathological cases, empty try body
     if self.isEmpty(body): return orelse + finalbody
 
     #transform each handlers into an if case, regrouping handlers into one
     handlers = self._transformHandlers(handlers)
-
-    #else elsewhere case
-    #where are we placing the orelse ?
-    # - orelse && finalbody => in the try, inside another try
-    # - ! orelse || ! finalbody => at the end
-
-    #oreles vide  ?
-
     assert len(handlers) == 1
-    #assert len(orelse) == 0
 
-    return TryFinally(
+    if self.isEmpty(orelse): #no orelse clause
+      #return the tryfinally without orelse
+      return TryFinally(
+          [TryExcept(
+            body,
+            handlers,
+            [],
+          )],
+          finalbody
+      )
+
+    if self.isEmpty(finalbody):
+      #no finally clause, but have a orelse one
+      return [TryFinally(
+          [TryExcept(
+            body,
+            handlers,
+            [],
+          )],
+          []
+      )] + orelse
+
+
+    isErrorOrelse = self.geneVariable()
+
+    #isErrorOrelse = False
+    before = [
+        Assign([Name(isErrorOrelse, Store())], Name('False', Load()) ),
+    ]
+
+    #isErrorOrelse = True ; orelse
+    afterBody = [
+        Assign([Name(isErrorOrelse, Store())], Name('True', Load()) ),
+    ] + orelse
+
+    currIf = handlers[0].body
+    newIf = [
+        If(
+          Name(isErrorOrelse, Load()),
+          [Raise()],
+          currIf,
+        ),
+    ]
+    handlers[0].body = newIf
+
+    return before + [TryFinally(
         [TryExcept(
-          body,
+          body+ afterBody,
           handlers,
-          orelse,
+          [],
         )],
         finalbody
-    )
+    )]
 
 
   def visit_TryExcept(self, node):
-    return [self._generate(
+    return self._generate(
         self.visit(node.body),
         self.visit(node.handlers),
         self.visit(node.orelse),
         [] #from the missing tryFinally
-    )]
+    )
 
 
   def visit_TryFinally(self, node):
