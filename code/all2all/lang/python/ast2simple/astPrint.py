@@ -94,6 +94,10 @@ class Print_python:
     def str_ImportFrom(self, e):
         return 'from %s import %s' % (e.module, ', '.join(self(e) for e in e.names) )
 
+    def str_Raise(self, e):
+        #return print_simple(e) #don't work, why that ? I don't know
+        #TODO test the raise stuff, and print a more complex one
+        return 'Raise ???'
 
     def str_If(self, e):
         res = ['if %s:' % self(e.test)]
@@ -113,6 +117,14 @@ class Print_python:
         orelse = self.bodyIndent(e.orelse)
         res += orelse and ['else:'] + orelse or []
         return '\n'.join(res)
+
+    def str_TryFinally(self, e):
+        res = ['try:']
+        res += self.bodyIndent(e.body)
+        res += ['finally:']
+        res += self.bodyIndent(e.finalbody)
+        return '\n'.join(res)
+
     def str_TryExcept(self, e):
         res = ['try:']
         res += self.bodyIndent(e.body)
@@ -120,6 +132,7 @@ class Print_python:
         orelse = self.bodyIndent(e.orelse)
         res += orelse and ['else:'] + orelse or []
         return '\n'.join(res)
+
     def str_ExceptHandler(self, e):
         name = e.name and self(e.name) or ''
         typeStr = e.type and self(e.type) or ''
