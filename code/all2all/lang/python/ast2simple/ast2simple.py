@@ -28,10 +28,12 @@ class PythonAst2Simple(object): #it's its own transformer
 
   #don't exists in simple elements
   def visit_For(self, node): raise NotExistsException('For')
-  def visit_Pass(self, node): raise NotExistsException('Pass')
+  def visit_TryExcept(self, node): raise NotExistsException('TryExcept')
 
   def visit_Str(self, node): return Str(node.s)
   def visit_Num(self, node): return Num(node.n)
+
+  def visit_Pass(self, node): return ExprList([])
 
 
   def visit_While(self, node):
@@ -133,6 +135,28 @@ class PythonAst2Simple(object): #it's its own transformer
 
       return Call(Name("Subscript"), [self.visit(node.value)] + sliceValue)
   def visit_Index(self, node): assert False, "should not be visited"
+
+  def visit_Break(self, node): return Break()
+  def visit_Continue(self, node): return Continue()
+  def visit_Raise(self, node): return Raise() #TODO with the others parameters
+
+
+  def visit_TryFinally(self, node):
+    assert len(node.body) == 1
+    c = node.body[0]
+    assert isinstance(c, ast.TryExcept)
+    assert len(c.handlers) == 1
+    h = c.handlers[0]
+    assert isinstance(h, ast.ExceptHandler)
+
+    body = self.visit_body(c.body)
+    errName = Name(h.name.id)
+    catch = self.visit_body(h.body)
+    final = self.visit_body(node.finalbody)
+
+    return TryCatchFinally(body, errName, catch, final)
+
+
 
 
 #__EOF__

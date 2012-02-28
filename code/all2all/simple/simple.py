@@ -37,8 +37,12 @@ class Call(AST): _fields = ['func', 'args']
 class Str(AST): _fields = ['s']
 class IfElse(AST): _fields = ['test', 'body', 'orelse']
 class NoneType(AST): _fields = []
+class Break(AST): _fields = []
+class Raise(AST): _fields = []
+class Continue(AST): _fields = []
 class While(AST): _fields = ['test', 'body']
 class Num(AST): _fields = ['n']
+class TryCatchFinally(AST): _fields = ['body', 'errName', 'catch', 'final']
 
 
 
@@ -79,6 +83,16 @@ class SimpleDump:
     def str_NoneType(self, e): return "null"
     def str_While(self, e): return 'While(%s) %s' % (self(e.test), self(e.body))
     def str_Num(self, e): return 'Num("%s")' % e.n
+    def str_TryCatchFinally(self, e):
+      return 'try %s catch_error %s %s finally %s' % (
+          self(e.body), self(e.errName),
+          self(e.catch), self(e.final)
+      )
+
+    def str_Break(self, e): return '%Break%'
+    def str_Raise(self, e): return '%Raise% ???'
+    def str_Continue(self, e): return '%Continue%'
+
 
 
 #declare a node transformer for inheritance
