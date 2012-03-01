@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import ast
-from simple.simple import *
+from script2script.simple.simple import *
 from transform.nodeTransformer import NodeTransformer
 from script2script.simple.simple import AST as S_AST
 

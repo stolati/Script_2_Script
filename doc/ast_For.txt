@@ -1,0 +1,69 @@
+The For element in the python is like that :
+
+Grammar specification :
+for_stmt: 'for' exprlist 'in' testlist ':' suite ['else' ':' suite]
+
+Ast:
+For(expr target, expr iter, stmt* body, stmt* orelse)
+
+Following infos from : http://docs.python.org/reference/compound_stmts.html#the-for-statement
+
+Because it is specific to Python, we change it into a While in the Simple.
+Hopefully, the for is pretty straightforward, it is 
+
+break
+continue
+
+iter :
+iter return an iterator object,
+iter(b) with b an iterator return b
+
+AttributeError is returned when an object has not a variable
+
+The else cause is used when all the items are exausted, each times
+The target list is not del when the for end, it keep the last non-
+
+When an object contain only next, iter fail
+
+Test of the For with a __iter__ fct
+Test of the For with a __getitem__ fct
+Test of the For with a __next__ fct
+Test of the For with both
+Test of the For with none
+Test of the For with a __call__ with a __iter__
+Test of the For with a __call__ with a __getitem__
+Test of the For with a __next__ fct
+Test of the For with a __call__ with both
+Test of the For with a __call__ with none
+
+def testFor(i):
+  print c
+  for c in i:
+    print c
+  else:
+    print "else : ", c
+
+class BasiIter:
+  def __init__(self, n = 3):
+    self.i = range(n)
+
+  def next(self):
+    try:
+      return self.i.pop(0)
+    except IndexError:
+      raise StopIteration()
+
+class WithIter(BasiIter):
+  def __iter__(self): return self
+
+class WithGetItem(BasiIter):
+  def __getitem__(self, i): return self.next()
+
+class WithBoth(WithIter, WithGetItem): pass
+
+class WithNone: pass
+
+class WithCallIter(BasiIter):
+  def __call__(self, name, *args, **kwargs):
+    if name == '__iter__' : return self
+    raise A

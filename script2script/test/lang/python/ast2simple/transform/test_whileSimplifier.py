@@ -7,20 +7,29 @@ from script2script.lang.python.ast2simple.transform.whileSimplifier import While
 
 #util function, true the firsts n times, then false
 class Cdt:
-    def __init__(self, n):
-        self._n = n
-        self._c = 0
+  """Helper class in a function form, is true n times, then false"""
 
-    def __call__(self):
-        self._c +=1
-        return self._n <= self._c
+  def __init__(self, n):
+    """
+    set the number of trues
+    @param n: the number of true before false
+    """
+    self._n = n
+    self._c = 0
+
+  def __call__(self):
+    """
+    @return: true or false, depending of the number of calls
+    """
+    self._c +=1
+    return self._n <= self._c
 
 
 class TestHaveBreak(unittest.TestCase):
   #test functions, not created to be launched
   def whileWithElse():
     while a():
-        b()
+      b()
     else: c()
 
   def whileWithBreak():

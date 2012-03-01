@@ -5,15 +5,13 @@ if [[ ! -d "bin" ]]; then
   echo ". ./bin/profile"
 fi
 
+[[ -n "$script2script_path" ]] && return
 
 export script2script_path="$PWD"
-PATH="$PATH:$script2script_path/bin"
-
 lib_path="$script2script_path/lib"
+
+PATH="$PATH:$script2script_path/bin"
 export PYTHONPATH="$PYTHONPATH:$script2script_path:$lib_path/mock"
-
-
-
 
 #__EOF__
 

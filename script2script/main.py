@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 import sys
 
-from lang.python.ast2simple.parsePython import parse
+from script2script.lang.python.ast2simple.parsePython import parse
 
-from lang.python.ast2simple.transform.forIntoWhile import ForIntoWhile
-from lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier
-from lang.python.ast2simple.transform.cleanJumps import CleanJumps
-from lang.python.ast2simple.transform.trySimplifier import TrySimplifier
-from lang.python.ast2simple.ast2simple import PythonAst2Simple
+from script2script.lang.python.ast2simple.transform.forIntoWhile import ForIntoWhile
+from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier
+from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
+from script2script.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
+from script2script.lang.python.ast2simple.ast2simple import PythonAst2Simple
 
-from simple.simple import dump as dumpSimple
+from script2script.simple.simple import dump as dumpSimple
 
 
 #True, False and None are variables

@@ -8,19 +8,12 @@
   - Create in it a package for the unittest (Twisted/twisted/test)
 - add a readme : "README", a setup.py to explain install
 
-#from 
+#from http://stackoverflow.com/questions/193161/what-is-the-best-project-structure-for-a-python-application
 
+/lib => libraries
+/doc => for documentation
+/apidoc => for generated documentation ( epydoc-generated api docs )
 
-
-
-
-
-
-
-
-
-
-
-
+configs and other in the root dir
 
 
