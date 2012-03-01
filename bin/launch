@@ -34,7 +34,7 @@ case "$command" in
       ls "$all2all_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
     }
     file="$(listTests "$testNum")"
-    "$all2all_path/code/all2all/main.py" "$all2all_path/files_tests/$file"
+    "$all2all_path/all2all/main.py" "$all2all_path/files_tests/$file"
   ;;
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
@@ -98,13 +98,13 @@ case "$command" in
 
   ;;
   list)
-    find "$all2all_path/code" "$all2all_path/test" -name '*.py' | grep -v __init__
+    find "$all2all_path/all2all" "$all2all_path/test" -name '*.py' | grep -v __init__
   ;;
 
   todo)
     (
       cd "$all2all_path"
-      find code test -type f | xargs grep --color TODO
+      find all2all test -type f | xargs grep --color TODO
     )
   ;;
 
