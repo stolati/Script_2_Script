@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [[ ! -d "bin" ]]; then
+  echo "you should execute this code inside Script_2_Script like that :"
+  echo ". ./bin/profile"
+fi
+
+
 export script2script_path="$PWD"
 PATH="$PATH:$script2script_path/bin"
 

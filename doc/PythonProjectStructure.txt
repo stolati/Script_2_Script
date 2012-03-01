@@ -1,0 +1,26 @@
+#from the web-site : http://jcalderone.livejournal.com/39794.html
+
+- Name the directory something related to your project
+  - when releases, add a number version ( like Twisted-2.5 )
+- Create a directory "bin" and put executables, don't give extentions on it (.py or .bash)
+  - don't put any code, except import and some main functions
+- Create a directory with the name of the project ( twisted ), and put your code here
+  - Create in it a package for the unittest (Twisted/twisted/test)
+- add a readme : "README", a setup.py to explain install
+
+#from 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
