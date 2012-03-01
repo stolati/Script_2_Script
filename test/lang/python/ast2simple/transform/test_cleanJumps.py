@@ -2,7 +2,7 @@
 import unittest, types, mock
 import sys
 
-from all2all.lang.python.ast2simple.transform.cleanJumps import CleanJumps
+from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
 from methodVisitUtil import callOnBoth
 
 class Test_CleanJumps(unittest.TestCase):

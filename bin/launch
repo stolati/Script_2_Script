@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -eu
 
-if [[ -z "${all2all_path:-}" ]]; then
+if [[ -z "${script2script_path:-}" ]]; then
   echo "Profile not loaded"
   echo ". profile"
   exit 1
 fi
 
-refs="$all2all_path/refs"
-input="$all2all_path/input"
-output="$all2all_path/output"
-tmp="$all2all_path/tmp"
+refs="$script2script_path/refs"
+input="$script2script_path/input"
+output="$script2script_path/output"
+tmp="$script2script_path/tmp"
 
 launch_exe="$0"
 
@@ -31,10 +31,10 @@ case "$command" in
     fi
 
     listTests(){ #<filtre>
-      ls "$all2all_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
+      ls "$script2script_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
     }
     file="$(listTests "$testNum")"
-    "$all2all_path/all2all/main.py" "$all2all_path/files_tests/$file"
+    "$script2script_path/script2script/main.py" "$script2script_path/files_tests/$file"
   ;;
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
@@ -69,8 +69,8 @@ case "$command" in
       )
     }
 
-    echo "Pulling all2all from github"
-    ( cd "$all2all_path" ; git pull ; )
+    echo "Pulling script2script from github"
+    ( cd "$script2script_path" ; git pull ; )
 
     git_pull git://pyjs.org/git/pyjamas.git Pyjamas
     git_pull http://git.nuitka.net/Nuitka.git Nuitka
@@ -85,26 +85,26 @@ case "$command" in
   tests) #launch the unittest
     (
       name="test*${1:-}*.py"
-      cd "$all2all_path/test" #change in case of access by absolute
-      python -m unittest discover -s "$all2all_path/test" -v -p "$name"
+      cd "$script2script_path/test" #change in case of access by absolute
+      python -m unittest discover -s "$script2script_path/test" -v -p "$name"
 
     )
   ;;
 
   pylint) #launch pylint on the code
-   pylint --rcfile="$all2all_path/pylint.conf" "$all2all_path/code/all2all" "$all2all_path/code/test"
+   pylint --rcfile="$script2script_path/pylint.conf" "$script2script_path/script2script" "$script2script_path/code/test"
    #TODO idea is to use the -e arguments
    #TODO use -d instead, some errors are no worth using
 
   ;;
   list)
-    find "$all2all_path/all2all" "$all2all_path/test" -name '*.py' | grep -v __init__
+    find "$script2script_path/script2script" "$script2script_path/test" -name '*.py' | grep -v __init__
   ;;
 
   todo)
     (
-      cd "$all2all_path"
-      find all2all test -type f | xargs grep --color TODO
+      cd "$script2script_path"
+      find script2script test -type f | xargs grep --color TODO
     )
   ;;
 

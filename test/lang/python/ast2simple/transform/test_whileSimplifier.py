@@ -3,7 +3,7 @@ import unittest, types, mock
 import sys
 
 from methodVisitUtil import MethodVisitUtil, callOnBoth
-from all2all.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier, HaveBreak
+from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier, HaveBreak
 
 #util function, true the firsts n times, then false
 class Cdt:

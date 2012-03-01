@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-export all2all_path="$PWD"
-PATH="$PATH:$all2all_path/bin"
+export script2script_path="$PWD"
+PATH="$PATH:$script2script_path/bin"
 
-lib_path="$all2all_path/lib"
-export PYTHONPATH="$PYTHONPATH:$all2all_path:$lib_path/mock"
+lib_path="$script2script_path/lib"
+export PYTHONPATH="$PYTHONPATH:$script2script_path:$lib_path/mock"
 
 
 

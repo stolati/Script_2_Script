@@ -2,7 +2,7 @@
 import ast
 from simple.simple import *
 from transform.nodeTransformer import NodeTransformer
-from all2all.simple.simple import AST as S_AST
+from script2script.simple.simple import AST as S_AST
 
 class NotExistsException(Exception):
     def __init__(self, name): Exception.__init__(self, 'The element "%s" should not exists'%name)

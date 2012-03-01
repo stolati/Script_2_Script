@@ -3,7 +3,7 @@ import unittest, types, mock
 import sys
 
 from methodVisitUtil import MethodVisitUtil, callOnBoth
-from all2all.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
+from script2script.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
 
 
 class TestTrySimplifier(unittest.TestCase):
