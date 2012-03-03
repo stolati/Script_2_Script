@@ -7,10 +7,14 @@ if [[ -z "${script2script_path:-}" ]]; then
   exit 1
 fi
 
+
+bin="$script2script_path/bin"
+doc="$script2script_path/doc"
+example="$script2script_path/example"
+lib="$script2script_path/lib"
 refs="$script2script_path/refs"
-input="$script2script_path/input"
-output="$script2script_path/output"
-tmp="$script2script_path/tmp"
+code="$script2script_path/script2script"
+test="$code/test"
 
 launch_exe="$0"
 
@@ -31,36 +35,31 @@ case "$command" in
     fi
 
     listTests(){ #<filtre>
-      ls "$script2script_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
+      find "$example" -type f -name '*.py' | grep "${1:-}" | head -1
     }
     file="$(listTests "$testNum")"
-    "$script2script_path/script2script/main.py" "$script2script_path/files_tests/$file"
-  ;;
-  compile)
-    pyjscompile="$refs/Pyjamas/bin/pyjscompile"
-    pyjampiler="$refs/Pyjamas/bin/pyjampiler"
-    pyjsbuild="$refs/Pyjamas/bin/pyjsbuild"
-    python "$pyjsbuild" \
-      --output="$output/main.js" \
-      "$input/main.py"
-
+    "$code/main.py" "$file"
   ;;
   init)
     mkdir -p "$refs"
 
     git_pull(){ #<git_path> <dir_name>
       typeset git_path="$1" dir_name="$2"
-      [[ -d "$refs/$dir_name" ]] || git clone "$git_path" "$refs/$dir_name"
+      if [[ ! -d "$refs/$dir_name" ]]; then
+        echo "Cloning $dir_name"
+        git clone "$git_path" "$refs/$dir_name" || true
+        return
+      fi
 
       echo "Pulling $dir_name"
       (
         cd "$refs/$dir_name"
-        git pull
+        git pull || true
       )
     }
     mercurial_pull(){ #<mercurial_path> <dir_name>
       typeset merc_path="$1" dir_name="$2"
-      [[ -d "$refs/$dir_name" ]] || hg clone "$merc_path" "$refs/$dir_name"
+      [[ ! -d "$refs/$dir_name" ]] || hg clone "$merc_path" "$refs/$dir_name"
       echo "Pulling $dir_name"
       (
         cd "$refs/$dir_name"
@@ -85,20 +84,20 @@ case "$command" in
   tests) #launch the unittest
     (
       name="test*${1:-}*.py"
-      cd "$script2script_path/script2script/test" #change in case of access by absolute
-      python -m unittest discover -s "$script2script_path/script2script/test" -v -p "$name"
+      cd "$test" #change in case of access by absolute
+      python -m unittest discover -s "$test" -v -p "$name"
 
     )
   ;;
 
   pylint) #launch pylint on the code
-   pylint --rcfile="$script2script_path/pylint.conf" "$script2script_path/script2script" "$script2script_path/code/test"
+   pylint --rcfile="$script2script_path/pylint.conf" "$code"
    #TODO idea is to use the -e arguments
    #TODO use -d instead, some errors are no worth using
 
   ;;
   list)
-    find "$script2script_path/script2script" -name '*.py' | grep -v __init__
+    find "$code" -name '*.py' | grep -v __init__
   ;;
 
   todo)
