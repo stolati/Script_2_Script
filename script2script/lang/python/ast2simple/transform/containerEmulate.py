@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+#TODO : delete multiple uses => delete single use
+#TODO : assign multiple uses => assign single use
+
+#TODO : augassign
+#TODO : slice : x[1:, :, ...] => (slice(1, None, None), slice(None, None, None), Ellipsis)
+
+
 from ast import *
 import nodeTransformer
 
@@ -12,13 +19,28 @@ import nodeTransformer
 
 class ContainerEmulate(nodeTransformer.NodeTransformer):
 
+
   def sliceIntoParam(self, slice_val):
+
     if isinstance(slice_val, Index):
       return self.visit(slice_val.value)
-    #TODO Ellipsis
-    #TODO Slice
-    #TOOD ExtSlice
-    assert False, "not implemented now"
+    elif isinstance(slice_val, Slice):
+      lower = self.visit(slice_val.lower) or Name('None', Load())
+      upper = self.visit(slice_val.upper) or Name('None', Load())
+      step = self.visit(slice_val.step) or Name('None', Load())
+
+      return Call(
+          Name('slice', Load()),
+          [lower, upper, step], [], None, None
+      )
+    elif isinstance(slice_val, Ellipsis):
+      return Name('Ellipsis', Load())
+    elif isinstance(slice_val, ExtSlice):
+      return Tuple(
+        [self.sliceIntoParam(s) for s in slice_val.dims],
+        Load()
+      )
+    else: assert False, "slice type unknown"
 
 
   def visit_Subscript(self, node):
@@ -35,13 +57,7 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
         [slice_val], [], None, None
     )
 
-
-  #TODO AugAssign
-  #TODO del
-
   def visit_Assign(self, node):
-    #TODO test assign multiple use, list all assign use
-    #TODO do a change for assign stuffs to 1 element
     assert len(node.targets) == 1
     target = node.targets[0]
     if not isinstance(target, Subscript):
@@ -63,8 +79,6 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
     )
 
   def visit_Delete(self, node):
-    #TODO test delete multiple use, list all delete use
-    #TODO do a change for delete stuffs to 1 element
     assert len(node.targets) == 1
     target = node.targets[0]
     if not isinstance(target, Subscript):
@@ -84,34 +98,46 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
     )
 
 
-  #def visit_AugAssign(self, node):
-  #  #TODO be more intelligent
-  #  if not isinstance(node.target, Subscript):
-  #    return self.generic_visit(node)
+  def visit_AugAssign(self, node):
+    if not isinstance(node.target, Subscript):
+      return self.generic_visit(node)
 
-  #  value = self.visit(node.target.value)
-  #  slice_val = self.sliceIntoParam(node.target.slice)
-  #  print node.target.ctx
-  #  assert isinstance(node.target.ctx, Store)
-  #  op = self.visit(node.op)
-  #  ass_right = self.visit(node.value)
+    operator = self.visit(node.op)
+    value = self.visit(node.value)
+
+    target_value = self.visit(node.target.value)
+    target_slice = self.sliceIntoParam(node.target.slice)
+    target_ctx = Store()
+
+    #list[a] += value =>
+    # listValue = list
+    # sliceValue = slice
+    # getValue = listValue.__getitem__(a)
+    # getValue += value
+    # listValue.__setitem__(a, getValue)
+
+    listVar = self.geneVariable()
+    sliceVar = self.geneVariable()
+    contentValVar = self.geneVariable()
+
+    return [
+        Assign( [Name(listVar, Store())], target_value),
+        Assign( [Name(sliceVar, Store())], target_slice),
+        Assign( [Name(contentValVar, Store())],
+          Call(
+            Attribute(Name(listVar, Load()), '__getitem__', Load()),
+            [Name(sliceVar, Load())], [], None, None
+          )
+        ),
+        AugAssign(Name(contentValVar, Store()), operator, value),
+        Expr(Call(
+          Attribute(Name(listVar, Load()), '__setitem__', Load()),
+          [Name(sliceVar, Load()), Name(contentValVar, Load())], [], None, None
+        )),
+    ]
+
 
 #container type:
-#  __getitem__(self, key)
-#  __setitem__(self, key, value)
-#  __delitem__(self, key)
-#  __iter__(self)
-#  __contains__(self, item)
-
-#key could be slices, integer, or anything
-#
-
-
-#
-#should test slice
-#
-
-
-
+#TODO  __contains__(self, item)
 
 #__EOF__
