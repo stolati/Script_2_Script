@@ -2,10 +2,7 @@
 
 #TODO : delete multiple uses => delete single use
 #TODO : assign multiple uses => assign single use
-
-#TODO : augassign
-#TODO : slice : x[1:, :, ...] => (slice(1, None, None), slice(None, None, None), Ellipsis)
-
+#TODO : compare multiple uses => compare single use
 
 from ast import *
 import nodeTransformer
@@ -18,7 +15,6 @@ import nodeTransformer
 
 
 class ContainerEmulate(nodeTransformer.NodeTransformer):
-
 
   def sliceIntoParam(self, slice_val):
 
@@ -41,6 +37,7 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
         Load()
       )
     else: assert False, "slice type unknown"
+
 
 
   def visit_Subscript(self, node):
@@ -137,7 +134,30 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
     ]
 
 
-#container type:
-#TODO  __contains__(self, item)
+  #cmpop = In NotIn
+  def visit_Compare(self, node):
+    assert len(node.ops) == 1
+    assert len(node.comparators) == 1
+    isOpIn = isinstance(node.ops[0], In)
+    isOpNotIn = isinstance(node.ops[0], NotIn)
+    if not isOpIn and not isOpNotIn: return self.generic_visit(node)
+
+    left = self.visit(node.left)
+    ops = self.visit(node.ops[0])
+    comp = self.visit(node.comparators[0])
+
+    #a in b => b.__contains__(a)
+    res = Call(
+        Attribute( comp , '__contains__', Load()),
+        [left], [], None, None
+    )
+
+    if isOpNotIn: #not b.__contains__(a)
+      res = UnaryOp(
+          Not(),
+          res,
+      )
+
+    return res
 
 #__EOF__

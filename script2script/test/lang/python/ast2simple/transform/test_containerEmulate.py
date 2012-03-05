@@ -79,7 +79,7 @@ class TestContainerEmulate(unittest.TestCase):
   #test different iterator in for
   def test_withDic(self):
 
-    def test_simpleAssign(m):
+    def test_simple(m):
       m('begin')
       m['a'] = 10
       m(m['a'])
@@ -87,9 +87,16 @@ class TestContainerEmulate(unittest.TestCase):
       m['b'] = 11
       m['b'] += 12
       m(m['b'])
+      m('b' in m)
+      m(m['b'] in m)
+      if 'a' in m: m('toto');
+      m('b' not in m)
+      m(m['b'] not in m)
+      if 'a' not in m: m('toto');
+      if m is m: m('titi')
       m('end')
 
-    def test_simpleAssign(m):
+    def test_Assign(m):
       m('begin')
       m['a'] = 'b'
       m['b'] = 'c'
@@ -111,7 +118,7 @@ class TestContainerEmulate(unittest.TestCase):
         m('key error')
       m('end')
 
-    self.checkFctOnLocals(locals(), ContainerEmulate(), lambda : SimuContainer({}) )
+    self.checkFctOnLocals(locals(), ContainerEmulate(), lambda : SimuContainer(dict()) )
 
   def test_withList(self):
 
@@ -123,6 +130,10 @@ class TestContainerEmulate(unittest.TestCase):
       m[2] = 11
       m[2] += 12
       m(m[2])
+      m(12 in m)
+      m(12 not in m)
+      m(13 in m)
+      m(13 not in m)
       m('end')
 
     self.checkFctOnLocals(locals(), ContainerEmulate(), lambda: SimuContainer(range(10)) )
