@@ -31,10 +31,10 @@ case "$command" in
     fi
 
     listTests(){ #<filtre>
-      ls "$script2script_path/files_tests" | grep '.py$' | grep "${1:-}" | head -1
+      ls "$script2script_path/example" | grep '.py$' | grep "${1:-}" | head -1
     }
     file="$(listTests "$testNum")"
-    "$script2script_path/script2script/main.py" "$script2script_path/files_tests/$file"
+    "$script2script_path/script2script/main.py" "$script2script_path/example/$file"
   ;;
   compile)
     pyjscompile="$refs/Pyjamas/bin/pyjscompile"
