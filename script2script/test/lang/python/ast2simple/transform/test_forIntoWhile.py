@@ -65,7 +65,7 @@ class TestForIntoWhile(AstTransformerTestClass):
 
 
   #test different iterator in for
-  def test_simpleFor_iter(self): #TODO
+  def test_simpleFor_iter(self):
 
     def test_for_simple(m, l):
       m('begin')

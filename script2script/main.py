@@ -3,6 +3,7 @@ import sys
 
 from script2script.lang.python.ast2simple.parsePython import parse
 
+from script2script.lang.python.ast2simple.transform.containerEmulate import ContainerEmulate
 from script2script.lang.python.ast2simple.transform.forIntoWhile import ForIntoWhile
 from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier
 from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
@@ -28,6 +29,7 @@ if __name__ == "__main__":
   content.visitWith(WhileSimplifier())
   content.visitWith(CleanJumps())
   content.visitWith(TrySimplifier())
+  content.visitWith(ContainerEmulate())
 
   print content
 

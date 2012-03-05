@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import ast, inspect, re, mock, unittest, types
 
-#TODO get out of this (up one step)
 def callOnBoth(fctOri, mockFactory, visitor, *args):
   """
   call the fct with and without visitor
@@ -96,8 +95,7 @@ class AstTransformerTestClass(unittest.TestCase):
   def dualTestFct(self, fctOri, visitor, mockFactory, *args):
     resOri, resVisited = callOnBoth(fctOri, mockFactory, visitor, *args)
 
-    #TODO remove
-    if resOri != resVisited:
+    if resOri != resVisited: #to debug, to remove if showing too many errors
       print 'testing %s' % fctOri.func_name
       print 'result : %s \n %s' % (resOri, resVisited)
 

@@ -16,8 +16,6 @@ class Print_python:
         return [self.indent_str + ss for ss in '\n'.join([self(e) for e in body]).split('\n')]
 
     def ast2str(self, e):
-        #TODO remove line, temporaly use this trick before we have true Simple
-        if e.__class__.__str__ != object.__str__: return str(e)
         #get the class name and use it for calling function
         return getattr(self, 'str_' + e.__class__.__name__, self.classNotFound)(e)
 

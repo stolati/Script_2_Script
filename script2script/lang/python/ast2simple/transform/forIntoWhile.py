@@ -80,8 +80,8 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
     #prepare the For statement
     f_target = self.visit(node.target)
     f_iter = self.visit(node.iter)
-    f_body = [self.visit(e) for e in node.body] #TODO self.visit(node.body)
-    f_orelse = [self.visit(e) for e in node.orelse] #TODO self.visit(node.orelse)
+    f_body = self.visit(node.body)
+    f_orelse = self.visit(node.orelse)
     f = For(f_target, f_iter, f_body, f_orelse)
 
     if self.breakNElse(f):

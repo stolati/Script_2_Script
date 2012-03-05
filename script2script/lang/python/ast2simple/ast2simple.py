@@ -12,8 +12,7 @@ class NotExistsException(Exception):
 #some element should be absent, replaced by other python syntax element
 class PythonAst2Simple(object): #it's its own transformer
 
-  #replace temporaly visit method
-  #TODO remove
+  #replace temporaly visit method, because is not really a python visitor
   def visit(self, node):
       method = 'visit_' + node.__class__.__name__
       assert hasattr(self, method), "Function %s don't exists" % method
@@ -49,10 +48,10 @@ class PythonAst2Simple(object): #it's its own transformer
       return Call(self.visit(node.func), argList)
 
   def visit_Import(self, node):
-      return Name('import TODO')
+      return Name('"import ast" TODO')
 
   def visit_ImportFrom(self, node):
-      return Name('import TODO')
+      return Name('"import from" ast TODO')
 
   def visit_Expr(self, node):
       return self.visit(node.value)
@@ -68,7 +67,7 @@ class PythonAst2Simple(object): #it's its own transformer
       return Assign(Variable(node.name), Function(Params(params), self.visit_body(node.body)))
 
   def visit_Assign(self, node):
-      assert len(node.targets) == 1, 'TODO change function when this raise'
+      assert len(node.targets) == 1, 'Assign should only be 1 long'
       return Assign(self.visit(node.targets[0]), self.visit(node.value))
 
   def visit_Attribute(self, node):
@@ -138,7 +137,7 @@ class PythonAst2Simple(object): #it's its own transformer
 
   def visit_Break(self, node): return Break()
   def visit_Continue(self, node): return Continue()
-  def visit_Raise(self, node): return Raise() #TODO with the others parameters
+  def visit_Raise(self, node): return Raise() #TODO raise with parameters
 
 
   def visit_TryFinally(self, node):
