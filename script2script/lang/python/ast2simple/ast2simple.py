@@ -28,6 +28,7 @@ class PythonAst2Simple(object): #it's its own transformer
   #don't exists in simple elements
   def visit_For(self, node): raise NotExistsException('For')
   def visit_TryExcept(self, node): raise NotExistsException('TryExcept')
+  def visit_List(self, node): raise NotExistsException('List')
 
   def visit_Str(self, node): return Str(node.s)
   def visit_Num(self, node): return Num(node.n)
@@ -78,9 +79,6 @@ class PythonAst2Simple(object): #it's its own transformer
   def visit_Return(self, node): return Return(self.visit(node.value))
   def visit_If(self, node):
       return IfElse(self.visit(node.test), self.visit_body(node.body), self.visit_body(node.orelse))
-
-  def visit_List(self, node):
-      return Call(Name('List'), [self.visit(e) for e in node.elts])
 
   def visit_Compare(self, node):
       elements = [self.visit(node.left)]

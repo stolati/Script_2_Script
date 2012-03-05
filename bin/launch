@@ -35,7 +35,7 @@ case "$command" in
     fi
 
     listTests(){ #<filtre>
-      find "$example" -type f -name '*.py' | grep "${1:-}" | head -1
+      find "$example" -type f -name "*${1:-}*.py" | sort | head -1
     }
     file="$(listTests "$testNum")"
     "$code/main.py" "$file"

@@ -45,6 +45,14 @@ class NodeTransformer(object):
 
   def generic_visit(self, node):
     assert isinstance(node, ast.AST)
+    #special case for Raise which has not so many elements it say
+    if isinstance(node, ast.Raise):
+      for f in node._fields:
+        try:
+          setattr(node, f, self.visit(getattr(node, f)))
+        except AttributeError: pass
+      return node
+
     for f in node._fields:
         setattr(node, f, self.visit(getattr(node, f)))
     return node
