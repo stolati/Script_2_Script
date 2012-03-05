@@ -2,7 +2,7 @@
 import unittest, types, mock
 import sys
 
-from methodVisitUtil import MethodVisitUtil, callOnBoth
+from methodVisitUtil import MethodVisitUtil, callOnBoth, AstTransformerTestClass
 from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier, HaveBreak
 
 #util function, true the firsts n times, then false
@@ -62,7 +62,7 @@ class TestHaveBreak(unittest.TestCase):
       self.assertEqual(res, expectedRes, "failed on function %s" % k.func_name)
 
 
-class TestWhileSimplifier(unittest.TestCase):
+class TestWhileSimplifier(AstTransformerTestClass):
 
   def test_breakNElse(self):
     testCases = [
@@ -78,57 +78,42 @@ class TestWhileSimplifier(unittest.TestCase):
       res = WhileSimplifier().breakNElse(while_ast)
       self.assertEqual(res, expectedRes, "failed on function %s" % k.func_name)
 
-  def dualTestFct(self, fctOri, *args):
-    resOri, resVisited = callOnBoth(fctOri, WhileSimplifier(), *args)
-
-    if resOri != resVisited:
-      print 'testing %s' % fctOri.func_name
-      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
-
-    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
-
-  def checkFctOnLocals(self, locals_values, *args):
-    for k, v in locals_values.iteritems():
-      if k.startswith('while_') and isinstance(v, types.FunctionType):
-        self.dualTestFct(v, *args)
-
-
   #test differents flow
   def test_simpleWhile_flow(self):
 
-    def while_empty(m, Cdt):
+    def test_while_empty(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c(): pass
       m('end')
 
-    def while_simple(m, Cdt):
+    def test_while_simple(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c(): m()
       m('end')
 
-    def whilefor_emptyElse(m, Cdt):
+    def test_whilefor_emptyElse(m, Cdt):
       m('begin')
       for i in range(10): pass
       else: m('else')
       m('end')
 
-    def while_nilElse(m, Cdt):
+    def test_while_nilElse(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c(): m()
       else: m('else')
       m('end')
 
-    def while_simpleElse(m, Cdt):
+    def test_while_simpleElse(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c(): m()
       else: m('else')
       m('end')
 
-    def while_break(m, Cdt):
+    def test_while_break(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -137,7 +122,7 @@ class TestWhileSimplifier(unittest.TestCase):
         m(c._c)
       m('end')
 
-    def while_continue(m, Cdt):
+    def test_while_continue(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -148,7 +133,7 @@ class TestWhileSimplifier(unittest.TestCase):
         m(c._c)
       m('end')
 
-    def while_continue_break(m, Cdt):
+    def test_while_continue_break(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -159,7 +144,7 @@ class TestWhileSimplifier(unittest.TestCase):
         m(c._c)
       m('end')
 
-    def while_multi(m, Cdt):
+    def test_while_multi(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -170,11 +155,11 @@ class TestWhileSimplifier(unittest.TestCase):
         m(c._c, 'end')
       m('end')
 
-    self.checkFctOnLocals(locals(), Cdt)
+    self.checkFctOnLocals(locals(), WhileSimplifier(), mock.Mock, Cdt)
 
   def test_complexWhile(self):
 
-    def while_empty(m, Cdt):
+    def test_while_empty(m, Cdt):
       m('begin')
       while True:
           m('break')
@@ -183,7 +168,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else')
       m('end')
 
-    def while_nil(m, Cdt):
+    def test_while_nil(m, Cdt):
       m('begin')
       while False:
           m('break')
@@ -192,7 +177,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else')
       m('end')
 
-    def while_simple(m, Cdt):
+    def test_while_simple(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -201,7 +186,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else')
       m('end')
 
-    def while_break(m, Cdt):
+    def test_while_break(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -211,7 +196,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('titi')
       m('end')
 
-    def while_continue(m, Cdt):
+    def test_while_continue(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -225,7 +210,7 @@ class TestWhileSimplifier(unittest.TestCase):
         m('tutu')
       m('end')
 
-    def while_continue_break(m, Cdt):
+    def test_while_continue_break(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -237,7 +222,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else')
       m('end')
 
-    def while_multi_onlyBreak(m, Cdt):
+    def test_while_multi_onlyBreak(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -253,7 +238,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else 1')
       m('end')
 
-    def while_multi_oneBreak1(m, Cdt):
+    def test_while_multi_oneBreak1(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -269,7 +254,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else 1')
       m('end')
 
-    def while_multi_oneBreak2(m, Cdt):
+    def test_while_multi_oneBreak2(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -285,7 +270,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else 1')
       m('end')
 
-    def while_multi_noBreak(m, Cdt):
+    def test_while_multi_noBreak(m, Cdt):
       m('begin')
       c = Cdt(10)
       while c():
@@ -301,7 +286,7 @@ class TestWhileSimplifier(unittest.TestCase):
       else: m('else 1')
       m('end')
 
-    self.checkFctOnLocals(locals(), Cdt)
+    self.checkFctOnLocals(locals(), WhileSimplifier(), mock.Mock, Cdt)
 
 if __name__ == "__main__":
   unittest.main()

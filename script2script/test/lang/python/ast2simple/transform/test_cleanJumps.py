@@ -3,23 +3,11 @@ import unittest, types, mock
 import sys
 
 from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
-from methodVisitUtil import callOnBoth
+from methodVisitUtil import callOnBoth, AstTransformerTestClass
 
-class Test_CleanJumps(unittest.TestCase):
+class Test_CleanJumps(AstTransformerTestClass):
 
-  def dualTestFct(self, fctOri, *args):
-    resOri, resVisited = callOnBoth(fctOri, CleanJumps(), *args)
 
-    if resOri != resVisited:
-      print 'testing %s' % fctOri.func_name
-      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
-
-    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
-
-  def checkFctOnLocals(self, locals_values, *args):
-    for k, v in locals_values.iteritems():
-      if k.startswith('test_') and isinstance(v, types.FunctionType):
-        self.dualTestFct(v, *args)
 
   def test_return(self):
     """ """
@@ -32,7 +20,7 @@ class Test_CleanJumps(unittest.TestCase):
 
     def test_return_value(m): m('1'); return 3; m('2')
 
-    self.checkFctOnLocals(locals())
+    self.checkFctOnLocals(locals(), CleanJumps(), mock.Mock)
 
   def test_continue(self):
 
@@ -57,7 +45,7 @@ class Test_CleanJumps(unittest.TestCase):
         m(i)
       m('end')
 
-    self.checkFctOnLocals(locals())
+    self.checkFctOnLocals(locals(), CleanJumps(), mock.Mock)
 
   def test_break(self):
 
@@ -82,7 +70,7 @@ class Test_CleanJumps(unittest.TestCase):
         m(i)
       m('end')
 
-    self.checkFctOnLocals(locals())
+    self.checkFctOnLocals(locals(), CleanJumps(), mock.Mock)
 
 if __name__ == "__main__":
   unittest.main()

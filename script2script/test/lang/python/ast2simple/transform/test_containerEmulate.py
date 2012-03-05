@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import unittest, types, mock
-import sys
+import unittest, mock
 
-from methodVisitUtil import MethodVisitUtil, callOnBoth, visitMethod
+from methodVisitUtil import AstTransformerTestClass
 from script2script.lang.python.ast2simple.transform.containerEmulate import ContainerEmulate
 
 class MockNothing:
@@ -41,40 +40,7 @@ class SimuContainer:
 
 
 
-class TestContainerEmulate(unittest.TestCase):
-
-  def dualTestFct(self, fctOri, visitor, mockFactory, *args):
-    resOri, resVisited = self.callOnBoth(fctOri, mockFactory, visitor, *args)
-
-    if resOri != resVisited:
-      print 'testing %s' % fctOri.func_name
-      print 'result : %s \n %s' % (resOri, resVisited) #TODO remove
-
-    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
-
-  def checkFctOnLocals(self, locals_values, visitor, mockFactory, *args):
-    for k, v in locals_values.iteritems():
-      if k.startswith('test_') and isinstance(v, types.FunctionType):
-        self.dualTestFct(v, visitor, mockFactory, *args)
-
-  def callOnBoth(self, fctOri, mockFactory, visitor, *args):
-    mOri = mockFactory()
-    try:
-      fctOri(mOri, *args) #test the original function
-    except Exception as e:
-      mOri(e)
-    resOri = mOri.call_args_list
-
-    mGoal = mockFactory()
-    fctGoal = visitMethod(fctOri, visitor)
-    try:
-      fctGoal(mGoal, *args)
-    except Exception as e:
-      mGoal(e)
-    resGoal = mGoal.call_args_list
-
-    return (resOri, resGoal)
-
+class TestContainerEmulate(AstTransformerTestClass):
 
   #test different iterator in for
   def test_withDic(self):
@@ -182,6 +148,7 @@ class TestContainerEmulate(unittest.TestCase):
       v = range(10); del v[::] ; m(v)
       m('end')
 
+    self.checkFctOnLocals(locals(), ContainerEmulate(), mock.Mock)
 
   def test_multiSlices(self):
 
@@ -210,12 +177,6 @@ class TestContainerEmulate(unittest.TestCase):
       m(m['a'])
 
     self.checkFctOnLocals(locals(), ContainerEmulate(), lambda: SimuContainer({}))
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

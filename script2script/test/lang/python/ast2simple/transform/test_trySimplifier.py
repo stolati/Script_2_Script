@@ -2,24 +2,11 @@
 import unittest, types, mock
 import sys
 
-from methodVisitUtil import MethodVisitUtil, callOnBoth
+from methodVisitUtil import MethodVisitUtil, callOnBoth, AstTransformerTestClass
 from script2script.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
 
 
-class TestTrySimplifier(unittest.TestCase):
-
-  def dualTestFct(self, fctOri, *args):
-    resOri, resVisited = callOnBoth(fctOri, TrySimplifier(), *args)
-    if resOri != resVisited:
-      print "differents : "
-      print resOri
-      print resVisited
-    self.assertEqual(resOri, resVisited, "error on function %s" % fctOri.func_name)
-
-  def checkFctOnLocals(self, locals_values, *args):
-    for k, v in locals_values.iteritems():
-      if k.startswith('test_') and isinstance(v, types.FunctionType):
-        self.dualTestFct(v, *args)
+class TestTrySimplifier(AstTransformerTestClass):
 
   def test_simpleTry(self):
 
@@ -143,7 +130,7 @@ class TestTrySimplifier(unittest.TestCase):
         m('finally')
       m('end')
 
-    self.checkFctOnLocals(locals(), Exception())
+    self.checkFctOnLocals(locals(), TrySimplifier(), mock.Mock, Exception())
 
 
 
