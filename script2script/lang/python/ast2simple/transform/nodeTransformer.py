@@ -64,4 +64,25 @@ class NodeTransformer(object):
     return len(node) == 1 and isinstance(node[0], ast.Pass)
 
 
+class NodeTransformerWithSmartInside(NodeTransformer):
+
+  def __init__(self):
+    self.bodyToAddBefore = [] #a list of statement list to add before the current 
+
+  def generic_visit(self, node):
+    pass
+    #`
+    #
+    #
+    #
+
+
+
+
+
+
+
+
+
+
 #__EOF__
