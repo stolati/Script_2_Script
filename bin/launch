@@ -97,7 +97,8 @@ case "$command" in
 
   ;;
   list)
-    find "$code" -name '*.py' | grep -v __init__
+    filter="${1:-}"
+    find "$code" -name '*.py' | grep -v __init__ | grep -i "$filter"
   ;;
 
   todo)
