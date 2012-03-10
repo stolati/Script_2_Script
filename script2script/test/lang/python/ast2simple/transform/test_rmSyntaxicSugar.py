@@ -2,25 +2,10 @@
 import unittest, mock
 
 from methodVisitUtil import AstTransformerTestClass
-from script2script.lang.python.ast2simple.transform.rmSyntaxicSugar import RmSyntaxicSugar
+from script2script.lang.python.ast2simple.transform.rmSyntaxicSugar import *
 
 
-
-class TestRmSyntaxicSugar(AstTransformerTestClass):
-
-  #def test_list2list(self):
-  #
-  #  def test_listEmpty(m):
-  #    m([])
-  #    l = []
-  #    m(l)
-  #
-  #  def test_listFull(m):
-  #    m([10, 'a', 'b', [ 'ctuseohu', 'ecrhu' ]] )
-  #    l = ['toto', 'titi', [[[[[ ]]]]], 1324987]
-  #    m(l)
-  #
-  #  self.checkFctOnLocals(locals(), RmSyntaxicSugar(), mock.Mock )
+class TestDeleteOnlyOne(AstTransformerTestClass):
 
   def test_delete(self):
 
@@ -63,7 +48,10 @@ class TestRmSyntaxicSugar(AstTransformerTestClass):
       m(l)
       m(d)
 
-    self.checkFctOnLocals(locals(), RmSyntaxicSugar(), mock.Mock)
+    self.checkFctOnLocals(locals(), DeleteOnlyOne(), mock.Mock)
+
+
+class TestAssignOnlyOne(AstTransformerTestClass):
 
 
   def test_Assign(self):
@@ -123,7 +111,31 @@ class TestRmSyntaxicSugar(AstTransformerTestClass):
       except ValueError:
         m('error ValueError to many')
 
-    self.checkFctOnLocals(locals(), RmSyntaxicSugar(), mock.Mock)
+    def test_assignErrorRecursive(m):
+      m('begin')
+      try:
+        m('before TypeError')
+        (a, [b, (c), d], e), f = [[[], [3, 4, 5], 10], 11]
+        m('after TypeError')
+      except TypeError:
+        m('error type error')
+
+      try:
+        m('before too few')
+        (a, [b, (c, d), e], f), f = [[[], [3, [4], 5], 10], 11]
+        m('after too few')
+      except ValueError:
+        m('error ValueError to few')
+
+      try:
+        m('before too much')
+        (a, [b, (c), d], e), f = [[[], [3, [4, 6], 5], 10], 11]
+        m('after too much')
+      except ValueError:
+        m('error ValueError to many')
+
+
+    self.checkFctOnLocals(locals(), AssignOnlyOne(), mock.Mock)
 
 
 
