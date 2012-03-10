@@ -2,16 +2,30 @@
 import ast
 
 class VariableGenerator(object):
+  """
+  Generator a unique variable name
+  """
   __varNum = 0
 
   #generate a unique variable for temporaly use
   def geneVariable(self, name=''):
+    """
+    Generate a uniq variable name, using incremental variables
+    @param name: a facultativ name to give to the variable, will be added to the beginning of it
+    @return: a string of the varible name
+    """
+
     if name : name = '_' + str(name)
     n = VariableGenerator.__varNum; VariableGenerator.__varNum += 1
     klassName = self.__class__.__name__
     return 'gv%s_%s_%s' % (name, n, klassName)
 
+
 class NodeVisitor(object):
+  """
+  Subclass to have a node visitor
+  Work the same way as the NodeVisitor of the ast module
+  """
 
   def _specific_visit(self, node):
     if node is None: return
@@ -37,10 +51,50 @@ class NodeVisitor(object):
         try:
           self.visit(getattr(node, f))
         except AttributeError: pass
-      return node
+      return
 
     for f in node._fields:
         self.visit(getattr(node, f))
+
+
+
+def node2json(node):
+  return Node2Json().visit(node)
+
+
+class Node2Json:
+  """Transform a node tree into a json dict/list structure"""
+
+  def _specific_visit(self, node):
+    if node is None: return 'None'
+    if isinstance(node, str): return node
+    if isinstance(node, int): return str(node)
+    if hasattr(node, '__iter__'):
+      return [self.visit(n) for n in node]
+    raise Exception('node type not known %s for element %s' % (node.__class__, node))
+
+  def visit(self, node):
+    if not isinstance(node, ast.AST): return self._specific_visit(node)
+    return self.generic_visit(node)
+
+
+  def generic_visit(self, node):
+    assert isinstance(node, ast.AST)
+    #special case for Raise which has not so many elements it say
+    if isinstance(node, ast.Raise):
+      res = {}
+      for f in node._fields:
+        try:
+          res[f] = self.visit(getattr(node, f))
+        except AttributeError: pass
+      return res
+
+    res = {}
+    for f in node._fields:
+      res[f] = self.visit(getattr(node, f))
+    return res
+
+
 
 
 class __iter_nodes(NodeVisitor):
@@ -56,7 +110,13 @@ class __iter_nodes(NodeVisitor):
     return self._nodes
 
 def iter_nodes(node):
+  """
+  return a node iterator, parsing all the nodes one by one
+  """
   return __iter_nodes()(node)
+
+
+
 
 
 
@@ -64,6 +124,15 @@ def iter_nodes(node):
 
 #declare a node transformer for inheritance
 class NodeTransformer(VariableGenerator, NodeVisitor):
+  """
+  Node transformer class, to subclass:
+  (You have to call the generic_visit function to continue to subnodes for each functions)
+  def visit<nodeName>(self, node) to visit a node, the return will be the new node
+  def visit(self, node) to visit all nodes
+  def generic_visit(self, node) to change the way a node is found
+
+  Take care, the node passed into visit is changed, it's not a new set of nodes
+  """
 
   #when visiting node, group collection of statement
   #used for the "body" "orelse" and stuffs like that groups
@@ -123,7 +192,15 @@ class NodeTransformer(VariableGenerator, NodeVisitor):
 
 
 
-class NodeTransformerWithSmartInside(NodeTransformer):
+class NodeTransformerAddedStmt(NodeTransformer):
+  """
+  Like the NodeTransformer
+  but add a possibility :
+  to add before the current statement others statements.
+
+  to add a single statement : self.statementToAdd( <stmt> )
+  to add multiple statements : self.statementsToAdd( <stmt list> )
+  """
 
   def __init__(self):
     self.bodyToAddBefore = [] #a list of statement list to add before the current 
@@ -131,20 +208,21 @@ class NodeTransformerWithSmartInside(NodeTransformer):
   def statementToAdd(self, stm): self.bodyToAddBefore[-1].append(stm)
   def statementsToAdd(self, stms): self.bodyToAddBefore[-1] += stms
 
-  def popLevel(self): return self.bodyToAddBefore.pop()
-  def addLevel(self): self.bodyToAddBefore.append([])
+  def _popLevel(self): return self.bodyToAddBefore.pop()
+  def _addLevel(self): self.bodyToAddBefore.append([])
 
   #get a single statement, return a list of statements
   def visit_a_Statement(self, stm):
-    self.addLevel()
+    self._addLevel()
     res = self.visit(stm)
-    return self.popLevel() + [res]
+    return self._popLevel() + [res]
 
   def visit_a_StatementList(self, stmList):
     res = [self.visit_a_Statement(s) for s in stmList]
     return self.flattenNodeList(res)
 
   def generic_visit(self, node):
+    #list the body insides all the ast parts
     bodyContainer = {
           ast.Module :      ['body'],
           ast.Interactive : ['body'],
@@ -170,7 +248,7 @@ class NodeTransformerWithSmartInside(NodeTransformer):
       if f in fieldsName:
         newVal = self.visit_a_StatementList(val)
       else:
-        self.visit(val)
+        newVal = self.visit(val)
       setattr(node, f, newVal)
 
     return node
