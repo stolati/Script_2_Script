@@ -8,6 +8,11 @@ from script2script.lang.python.ast2simple.transform.forIntoWhile import ForIntoW
 from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier
 from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
 from script2script.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
+
+from script2script.lang.python.ast2simple.transform.rmSyntaxicSugar import DeleteOnlyOne, AssignOnlyOne
+from script2script.lang.python.ast2simple.transform.listExtention import ListExtention, TupleExtention, DictExtention
+
+
 from script2script.lang.python.ast2simple.ast2simple import PythonAst2Simple
 
 from script2script.simple.simple import dump as dumpSimple
@@ -25,11 +30,10 @@ if __name__ == "__main__":
   print content
 
   #do the visitors on it
-  content.visitWith(ForIntoWhile())
-  content.visitWith(WhileSimplifier())
-  content.visitWith(CleanJumps())
-  content.visitWith(TrySimplifier())
-  content.visitWith(ContainerEmulate())
+  for m in [
+      ForIntoWhile, WhileSimplifier, CleanJumps, TrySimplifier, ContainerEmulate,
+      DeleteOnlyOne, AssignOnlyOne, ListExtention, TupleExtention, DictExtention, TrySimplifier,
+  ]: content.visitWith(m())
 
   print content
 
@@ -39,3 +43,4 @@ if __name__ == "__main__":
   print dumpSimple(simpleAst)
 
 #__EOF__
+

@@ -7,6 +7,9 @@
 #TODO : augassign
 #TODO : compare
 
+#TODO assignOnlyOne, do it for a = b = c = {}
+#TODO assignOnlyOne, check when [a, b, (a, b)] = [b, a, (b, a)] = toto
+
 from ast import *
 import nodeTransformer
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-#TODO : delete multiple uses => delete single use
-#TODO : assign multiple uses => assign single use
 #TODO : compare multiple uses => compare single use
 
 from ast import *
