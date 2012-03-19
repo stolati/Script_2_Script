@@ -105,13 +105,11 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
   #  a4
   #
   def _genSimpleFor(self, node):
-    aIter = self.geneVariable()
-    continueIter = self.geneVariable()
+    aIter = self.genVar('iter')
 
     res = [
       #aIter = iter(a3)
-      Assign(
-        [Name(aIter, Store())],
+      aIter.assign(
         Call(Name('iter', Load()), [node.iter], [], None, None),
       ),
       #while continueIter:
@@ -123,7 +121,7 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
             [Assign(
               [node.target],
               Call(
-                Attribute(Name(aIter, Load()), 'next', Load()),
+                aIter.load('next'),
                 [], [], None, None
               ),
             )],
@@ -161,22 +159,18 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
   #  a4
   #
   def _genComplexFor(self, node):
-    aIter = self.geneVariable()
-    continueIter = self.geneVariable()
+    aIter = self.genVar('iter')
+    continueIter = self.genVar('continue')
 
     res = [
       #continueIter = True
-      Assign(
-        [Name(continueIter, Store())],
-        Name('True', Load()),
-      ),
+      continueIter.assign( Name('True', Load()) ),
       #aIter = iter(a3)
-      Assign(
-        [Name(aIter, Store())],
+      aIter.assign(
         Call(Name('iter', Load()), [node.iter], [], None, None),
       ),
       #while continueIter:
-      While( Name(continueIter, Load()),
+      While( continueIter.load(),
         [
           #try
           TryExcept(
@@ -184,21 +178,18 @@ class ForIntoWhile(nodeTransformer.NodeTransformer):
             [Assign(
               [node.target],
               Call(
-                Attribute(Name(aIter, Load()), 'next', Load()),
+                aIter.load('next'),
                 [], [], None, None
               ),
             )],
             #except: StopIteration:
             [ ExceptHandler(Name('StopIteration', Load()), None, [
               #continueIter = False
-              Assign(
-                [Name(continueIter, Store())],
-                Name('False', Load()),
-              )
+              continueIter.assign( Name('False', Load()),)
             ]) ],
           []),
           #if not continueIter: a3
-          If( Name(continueIter, Load()),
+          If( continueIter.load(),
             node.body,
           [])
         ],

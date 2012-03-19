@@ -24,9 +24,9 @@ class Simplifying(NodeTransformerAddedStmt):
   def visit_BinOp(self, node):
     # BitAnd | FloorDiv
 
-    varLeft = self.geneVariable('left_operand')
-    varRight = self.geneVariable('rigth_operand')
-    varExpr = self.geneVariable('resultBinOp')
+    varLeft = self.genVar('left_operand')
+    varRight = self.genVar('rigth_operand')
+    varExpr = self.genVar('resultBinOp')
 
     #keep this order
     exprLeft = self.visit(node.left)
@@ -34,90 +34,87 @@ class Simplifying(NodeTransformerAddedStmt):
 
     self.statementsToAdd([
         #varLeft = exprLeft
-        Assign([Name(varLeft, Store())], exprLeft),
+        varLeft.assign(exprLeft),
         #varRight = exprRight
-        Assign([Name(varRight, Store())], exprRight),
+        varRight.assign(exprRight),
         #varExpr = varLeft + varRight
-        Assign(
-          [Name(varExpr, Store())],
-          BinOp( Name(varLeft, Load()), node.op ,Name(varRight, Load()) ),
+        varExpr.assign(
+          BinOp( varLeft.load(), node.op , varRight.load() ),
         )
     ])
 
-    return Name(varExpr, Load())
+    return varExpr.load()
 
 
   def visit_UnaryOp(self, node):
-    varOp = self.geneVariable('resultUnaryOp')
+    varOp = self.genVar('resultUnaryOp')
     exprOp = self.visit(node.operand)
 
     self.statementsToAdd([
       #varOp = - exprOp
-      Assign([Name(varOp, Store())], UnaryOp(node.op, exprOp)),
+      varOp.assign( UnaryOp(node.op, exprOp) ),
     ])
 
-    return Name(varOp, Load())
+    return varOp.load()
 
-  #def visit_Lambda(self, node): #TODO transform lambda into a def function
-  #def IfExp(self, node): #TODO transform into a real if expression
 
 
   def visit_Dict(self, node):
-    varDict = self.geneVariable('dict')
+    varDict = self.genVar('dict')
     self.statementToAdd(
       #varDict = dict()
-      Assign([Name(varDict, Store())], Call(Name('dict', Load()), [], [], None, None) ),
+      varDict.assign( Call(Name('dict', Load()), [], [], None, None) ),
     )
 
     for k, v in zip(node.keys, node.values):
-      varKey = self.geneVariable('key')
-      varVal = self.geneVariable('val')
+      varKey = self.genVar('key')
+      varVal = self.genVar('val')
 
       exprVal = self.visit(v)
       exprKey = self.visit(k)
 
       self.statementsToAdd( [
           #varVal = exprVal
-          Assign([Name(varVal, Store())] , exprVal),
+          varVal.assign(exprVal),
           #varKey = exprKey
-          Assign([Name(varKey, Store())] , exprKey),
+          varKey.assign(exprKey),
           #varDict.__setitem__(varKey, varVal)
           Expr(
             Call(
-              Attribute(Name(varDict, Load()), '__setitem__', Load()),
-              [Name(varKey, Load()), Name(varVal, Load())], [], None, None
+              varDict.load('__setitem__'),
+              [varKey.load(), varVal.load()], [], None, None
             )
           ),
       ])
 
-    return Name(varDict, Load())
+    return varDict.load()
 
 
   def visit_Set(self, node):
-    varSet = self.geneVariable('set')
+    varSet = self.genVar('set')
     self.statementToAdd(
       #varSet = set()
-      Assign([Name(varSet, Store())], Call(Name('set', Load()), [], [], None, None) ),
+      varSet.assign( Call(Name('set', Load()), [], [], None, None) ),
     )
 
     for e in node.elts:
-      varElt = self.geneVariable('elt')
+      varElt = self.genVar('elt')
 
       exprElt = self.visit(e)
 
       self.statementsToAdd([
         #varElt = exprElt
-        Assign([Name(varElt, Store())] , exprElt),
+        varElt.assign(exprElt),
         #varSet.add( exprElt )
         Expr(
           Call(
-            Attribute(Name(varSet, Load()), 'add', Load()),
-            [Name(varElt, Load())], [], None, None
+            varSet.load('add'),
+            [varElt.load()], [], None, None
           )
         ),
       ])
 
-    return Name(varSet, Load())
+    return varSet.load()
 
 
   def visit_Tuple(self, node):
@@ -125,55 +122,75 @@ class Simplifying(NodeTransformerAddedStmt):
     nameLoad = self.visit_List(node) #duck typing powaaaa
 
     #because we used a list to tmp puts things in, go back to tuple
-    varTuple = self.geneVariable('tuple')
+    varTuple = self.genVar('tuple')
     self.statementToAdd(
-      Assign([Name(varTuple, Store())], Call(Name('tuple', Load()), [nameLoad], [], None, None) ),
+      varTuple.assign( Call(Name('tuple', Load()), [nameLoad], [], None, None) ),
     )
 
-    return Name(varTuple, Load())
+    return varTuple.load()
 
 
   def visit_List(self, node):
-    varList = self.geneVariable('list')
+    varList = self.genVar('list')
     self.statementToAdd(
       #varList = tuple()
-      Assign([Name(varList, Store())], Call(Name('list', Load()), [], [], None, None) ),
+      varList.assign( Call(Name('list', Load()), [], [], None, None) ),
     )
 
     for e in node.elts:
-      varElt = self.geneVariable('elt')
+      varElt = self.genVar('elt')
 
       exprElt = self.visit(e)
 
       self.statementsToAdd([
         #varElt = exprElt
-        Assign([Name(varElt, Store())] , exprElt),
+        varElt.assign(exprElt),
         #varList.add( exprElt )
         Expr(
           Call(
-            Attribute(Name(varList, Load()), 'append', Load()),
-            [Name(varElt, Load())], [], None, None
+            varList.load('append'),
+            [varElt.load()], [], None, None
           )
         ),
       ])
 
-    return Name(varList, Load())
+    return varList.load()
 
   def visit_Repr(self, node):
-    varRepr = self.geneVariable('repr')
-    varValue = self.geneVariable('value')
+    varRepr = self.genVar('repr')
+    varValue = self.genVar('value')
 
     exprValue = self.visit(node.value)
 
     self.statementsToAdd([
       #varValue = exprValue
-      Assign([Name(varValue, Store())] ,exprValue),
+      varValue.assign(exprValue),
       #varRepr = repr(varValue)
-      Assign([Name(varRepr, Store())], Call(Name('repr', Load()), [Name(varValue, Load())], [], None, None ) ),
+      varRepr.assign( Call(Name('repr', Load()), [varValue.load()], [], None, None ) ),
     ])
 
-    return Name(varRepr, Load())
+    return varRepr.load()
 
+
+  def visit_Call(self, node):
+    #return node
+    #TODO do visit_Call
+
+    #func
+    #args
+    #keywords
+    #starargs
+    #kwargs
+
+    #return self.visit(node)
+    return self.generic_visit(node)
+
+  def visit_Compare(self, node):
+    return self.generic_visit(node)
+
+    #left
+    #cmpop * ops
+    #expr * comparators
 
 # - need more block intelligence
 # BoolOp(boolop op, expr* values)

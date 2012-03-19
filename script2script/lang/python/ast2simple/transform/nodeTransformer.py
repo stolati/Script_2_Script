@@ -20,6 +20,30 @@ class VariableGenerator(object):
     klassName = self.__class__.__name__
     return 'gv%s_%s_%s' % (name, n, klassName)
 
+  #generate a variable object that can give ast tree for most common uses
+  def genVar(self, name=''):
+    return GeneratedVariable( self.geneVariable(name) )
+
+
+class GeneratedVariable(object):
+
+  def __init__(self, name): self.name = name
+
+  def store(self, name=''):
+    if name == '': return ast.Name(self.name, ast.Store())
+    return ast.Attribute(self.load(), name, ast.Store() )
+
+  def load(self, name=''):
+    if name == '': return ast.Name(self.name, ast.Load())
+    return ast.Attribute(self.load(), name, ast.Load() )
+
+  def assign(self, val):
+    return ast.Assign([self.store()], val)
+
+  def __str__(self): return self.name
+
+
+
 
 class NodeVisitor(object):
   """
