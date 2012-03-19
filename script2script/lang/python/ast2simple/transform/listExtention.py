@@ -18,9 +18,9 @@ class ListExtention(nodeTransformer.NodeTransformerAddedStmt):
     for e in node.elts:
       before += [
         #varName.append(e)
-        Call(
+        Expr(Call(
           Attribute(Name(varName, Load()), 'append', Load()),
-          [self.visit(e)], [], None, None)
+          [self.visit(e)], [], None, None))
       ]
 
     self.statementsToAdd( before)
@@ -35,17 +35,17 @@ class TupleExtention(nodeTransformer.NodeTransformerAddedStmt):
 
     varName = self.geneVariable('tuple')
     #varName = tuple()
-    before = [Assign([Name(varName, Store())], Call(Name('tuple', Load()), [], [], None, None))]
+    before = [Assign([Name(varName, Store())], Call(Name('list', Load()), [], [], None, None))]
     for e in node.elts:
       #varName.append(e)
       before += [
-        Call(
+        Expr(Call(
           Attribute(Name(varName, Load()), 'append', Load()),
-          [self.visit(e)], [], None, None)
+          [self.visit(e)], [], None, None))
       ]
 
     self.statementsToAdd( before)
-    return Name(varName, Load())
+    return Call(Name('tuple', Load()), [Name(varName, Load())], [], None, None)
 
 
 class DictExtention(nodeTransformer.NodeTransformerAddedStmt):
@@ -60,9 +60,9 @@ class DictExtention(nodeTransformer.NodeTransformerAddedStmt):
       key, val = node.keys[i], node.values[i]
       before += [
         #varName.__setitem__(key, val)
-        Call(
+        Expr(Call(
           Attribute(Name(varName, Load()), '__setitem__', Load()),
-          [self.visit(key), self.visit(val)], [], None, None)
+          [self.visit(key), self.visit(val)], [], None, None))
       ]
 
     self.statementsToAdd( before)
