@@ -1,4 +1,13 @@
-#all2all aim to translate any language into any other language
+Script 2 Script is a programming language translator.
+It aim to translate any high level language into any language.
+
+The first POC is to translate Python -> Javascript (in a way similar to Pyjamas)
+
+The basic idea is to translate the 
+
+
+
+aim to translate any language into any other language
 # particulary the dynamics ones
 
 TODO :
