@@ -1,39 +1,39 @@
 Script 2 Script is a programming language translator.
-It aim to translate any high level language into any language.
+It aim to translate any high level language into any language. (named ori -> goal)
 
 The first POC is to translate Python -> Javascript (in a way similar to Pyjamas)
 
-The basic idea is to translate the 
+The basic idea is to translate the ori into a simplier language first.
+(Like the GCC compiler which have a GIMPLE ast tree)
+It goes like this ori -> SIMPLE -> goal
+
+Status :
+ - SIMPLE is not yet fully defined. It lacks a lot about libraries
+ - The syntax of Python is well advanced into SIMPLE.
 
 
 
-aim to translate any language into any other language
-# particulary the dynamics ones
+GLOBAL TODO :
+ - Change the repository structure 
 
-TODO :
- - change the directory structure :
+   from :
+   simple
+   lang/python/ast2simple/transformations
 
- from :
- simple
- lang/python/ast2simple/transformations
+   to :
+   simple
+   python/transformations
+   javascript
 
- to :
- simple
- python/transformations
- javascript
-
+ - 
 
 
 
 
-
-The idea is to use (like gcc) a central language named "Simple"
-Simple is simpler than most dynamic langugage.
-
-It has :
+What simple sould have :
  - function and class
  - variable declaration each time (as an object of more precise)
- - classes are not changeable at runtime
+ - classes are not changeable at runtime (or are they ?)
  - It have no hyheritance, all should be done by hand
  - No private or protected function/variable
  - method and function are the same, method should return null
@@ -45,26 +45,12 @@ It has :
  - new Object() is a special expression (not like python)
 
 
-It's interesting to load all the code once, then perfom the optimisation on them.
-Each node should have maximal 3 elements on the simple stuffs
+The way it will work, all the ori code should be loaded once, then translated.
+The optimisation part can't be done if only part of the language is loaded at a time.
 
 
 
 
-
-Milestone 1:
- Transforme 1 test element into 
-
-
-Milestone 2:
-
-
-
-
-No differents assignations, only :
- - direct assignation ( variable = value )
-
-So i[3] = 4 become : i.set(id=3, slice=4)
 
 Python => AST => SIMPLE => AST => Javascript
 
@@ -101,12 +87,5 @@ Code :
  - Source by module
    - Modules = [expressions]
      - expression have the source line information
-
-#
-#TODO :
-# - do a try except (with tests)
-# - do a stuff for AugAssign (with tests)
-#
-
 
 #__EOF__
