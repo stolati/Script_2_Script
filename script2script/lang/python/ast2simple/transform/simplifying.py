@@ -4,17 +4,8 @@ from ast import *
 from nodeTransformer import *
 
 #TODO take care of the while command
+#     it should copy the added command before and after
 
-
-#TODO genVar .store(), .load(), .assign(val)
-
-#Remove jumps command dead code :
-# The code immediatly after thoses can't execute :
-# after return
-# after break
-# after continue
-
-# redefine visitList function
 
 class Simplifying(NodeTransformerAddedStmt):
   #def statementToAdd(self, stm): self.bodyToAddBefore[-1].append(stm)
@@ -173,19 +164,61 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_Call(self, node):
-    #return node
-    #TODO do visit_Call
+    funcVar = self.genVar('func')
+    funcExpr = self.visit(node.func)
+    self.statementToAdd(funcVar.assign(funcExpr))
 
-    #func
-    #args
-    #keywords
-    #starargs
-    #kwargs
+    argsRes = []
+    for n, arg in enumerate(node.args):
+      aVar = self.genVar('arg_%s'%n)
+      aExpr = self.visit(arg)
+      self.statementToAdd( aVar.assign(aExpr) )
+      argsRes.append(aVar.load())
 
-    #return self.visit(node)
-    return self.generic_visit(node)
+    kargsRes = []
+    for keyword in node.keywords:
+      arg, value = keyword.arg, keyword.value
+      var = self.genVar('kargs_%s' % arg)
+      expr = self.visit(value)
+      self.statementToAdd( var.assign(expr) )
 
-  def visit_Compare(self, node):
+      keyword.value = var.load()
+      kargsRes.append( keyword )
+
+    starargsRes = None
+    if node.starargs:
+      starArgsVar = self.genVar('starargs')
+      starArgsExpr = self.visit(node.starargs)
+      self.statementToAdd( starArgsVar.assign(starArgsExpr))
+      starargsRes = starArgsVar.load()
+
+    kWargsRes = None
+    if node.kwargs:
+      kWargsVar = self.genVar('kwargs')
+      kWargsExpr = self.visit(node.kwargs)
+      self.statementToAdd( kWargsVar.assign(kWargsExpr))
+      kWargsRes = kWargsVar.load()
+
+    return Call(funcVar.load(), argsRes, kargsRes, starargsRes, kWargsRes)
+
+
+  #def visit_Compare(self, node):
+  #  #leftVar = self.genVar('leftMost')
+  #  #leftExpr = self.visit(node.left)
+
+  #  #for n, (op, comparator) in zip(node.ops, node.comparators)
+
+
+
+  #  # Compare(expr left, cmpop* ops, expr* comparators)
+
+
+
+
+
+
+
+
     return self.generic_visit(node)
 
     #left

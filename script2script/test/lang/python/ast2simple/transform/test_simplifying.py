@@ -294,7 +294,7 @@ class TestSimplifier(AstTransformerTestClass):
   def test_Repr(self):
 
     def test_simpleRepr(m):
-      def ret(r, *args): m(r); return r
+      def ret(r): m(r); return r
       class Toto:
         def __str__(self): return '01'
         def __repr__(self): return '02'
@@ -305,8 +305,72 @@ class TestSimplifier(AstTransformerTestClass):
       m( `ret({10, 11, 12})` )
       m( `Toto()` )
 
+    def test_complexRepr(m):
+      def ret(r): m(r); return r
+      class Toto:
+        def __str__(self): return '01'
+        def __repr__(self): return '02'
+
+      m( ``ret(3)`` )
+      m( ``ret((10, 11, 12))`` )
+      m( ``ret([10, 11, 12])`` )
+      m( ``ret({10, 11, 12})`` )
+      m( ``Toto()`` )
+
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+  def test_Call(self):
+
+    def test_simpleCall(m):
+      def ret(r): m(r); return r
+      def calonm(): m('calOnM'); return m
+      d = {'1':2, '3':4, '5':6}
+      calonm()(ret('b'), toto=ret('a'), tutu=ret('c'), a=ret('d'), z=ret('e'), aa=ret('f'), *ret(range(10)), **ret(d))
+
+    def test_complexCall(m):
+      def retall(*args, **kargs): m(args, kargs); return (args, kargs)
+      def calonm(): m('calOnM'); return m
+      d = {'1':2, '3':4, '5':6}
+      calonm()(retall(retall('b')))
+      calonm()( *retall(retall(*range(10), **{'toto':1})))
+
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
+  def test_Cmp(self):
+
+    def test_simpleCmp(m):
+      def ret(r): m(r); return r
+      for i in range(10):
+        for j in range(10):
+          m(ret(i) == ret(j))
+          m(ret(i) != ret(j))
+          m(ret(i) < ret(j))
+          m(ret(i) <= ret(j))
+          m(ret(i) > ret(j))
+          m(ret(i) >= ret(j))
+          m(ret(i) is ret(j))
+          m(ret(i) is not ret(j))
+          m(ret(i) in ret(range(j)))
+          m(ret(i) not in ret(range(j)))
+
+    #def test_complexCmp(m):
+    #  def retall(*args, **kargs): m(args, kargs); return (args, kargs)
+    #  def calonm(): m('calOnM'); return m
+    #  d = {'1':2, '3':4, '5':6}
+    #  calonm()(retall(retall('b')))
+    #  calonm()( *retall(retall(*range(10), **{'toto':1})))
+
+    #def test_SuiteCmp(m):
+    #  def retall(*args, **kargs): m(args, kargs); return (args, kargs)
+    #  def calonm(): m('calOnM'); return m
+    #  d = {'1':2, '3':4, '5':6}
+    #  calonm()(retall(retall('b')))
+    #  calonm()( *retall(retall(*range(10), **{'toto':1})))
+
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
 if __name__ == "__main__":
   unittest.main()
