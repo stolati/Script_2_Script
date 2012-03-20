@@ -7,6 +7,14 @@ from nodeTransformer import *
 #     it should copy the added command before and after
 
 
+#TODO make a copy command for ast elements
+
+#While element : body => a = element ; while a; body, a = element
+#a and b => if
+
+
+
+
 class Simplifying(NodeTransformerAddedStmt):
   #def statementToAdd(self, stm): self.bodyToAddBefore[-1].append(stm)
   #def statementsToAdd(self, stms): self.bodyToAddBefore[-1] += stms
