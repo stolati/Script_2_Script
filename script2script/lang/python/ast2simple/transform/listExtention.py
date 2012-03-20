@@ -3,8 +3,7 @@
 from ast import *
 import nodeTransformer
 
-#TODO do with no-empty list/tuple/dict
-
+#TODO remove thoses, not needed anymore
 
 class ListExtention(nodeTransformer.NodeTransformerAddedStmt):
 
@@ -12,19 +11,19 @@ class ListExtention(nodeTransformer.NodeTransformerAddedStmt):
     if not isinstance(node.ctx, Load): return self.generic_visit(node)
     if len(node.elts) == 0: return Call( Name('list', Load()), [], [], None, None)
 
-    varName = self.geneVariable('list')
+    varName = self.genVar('list')
     #varName = list()
-    before = [Assign([Name(varName, Store())], Call(Name('list', Load()), [], [], None, None))]
+    before = [varName.assign(Call(Name('list', Load()), [], [], None, None))]
     for e in node.elts:
       before += [
         #varName.append(e)
         Expr(Call(
-          Attribute(Name(varName, Load()), 'append', Load()),
+          varName.load('append'),
           [self.visit(e)], [], None, None))
       ]
 
     self.statementsToAdd( before)
-    return Name(varName, Load())
+    return varName.load()
 
 
 class TupleExtention(nodeTransformer.NodeTransformerAddedStmt):
@@ -33,19 +32,19 @@ class TupleExtention(nodeTransformer.NodeTransformerAddedStmt):
     if not isinstance(node.ctx, Load): return self.generic_visit(node)
     if len(node.elts) == 0: return Call( Name('tuple', Load()), [], [], None, None)
 
-    varName = self.geneVariable('tuple')
+    varName = self.genVar('tuple')
     #varName = tuple()
-    before = [Assign([Name(varName, Store())], Call(Name('list', Load()), [], [], None, None))]
+    before = [varName.assign(Call(Name('list', Load()), [], [], None, None))]
     for e in node.elts:
       #varName.append(e)
       before += [
         Expr(Call(
-          Attribute(Name(varName, Load()), 'append', Load()),
+          varName.load('append'),
           [self.visit(e)], [], None, None))
       ]
 
     self.statementsToAdd( before)
-    return Call(Name('tuple', Load()), [Name(varName, Load())], [], None, None)
+    return Call(Name('tuple', Load()), [varName.load()], [], None, None)
 
 
 class DictExtention(nodeTransformer.NodeTransformerAddedStmt):
@@ -53,20 +52,20 @@ class DictExtention(nodeTransformer.NodeTransformerAddedStmt):
   def visit_Dict(self, node):
     if len(node.keys) == 0: return Call(Name('dict', Load()), [], [], None, None)
 
-    varName = self.geneVariable('dict')
+    varName = self.genVar('dict')
     #varName = dict()
-    before = [Assign([Name(varName, Store())], Call(Name('dict', Load()), [], [], None, None))]
+    before = [varName.assign(Call(Name('dict', Load()), [], [], None, None))]
     for i in range(len(node.keys)):
       key, val = node.keys[i], node.values[i]
       before += [
         #varName.__setitem__(key, val)
         Expr(Call(
-          Attribute(Name(varName, Load()), '__setitem__', Load()),
+          varName.load('__setitem__'),
           [self.visit(key), self.visit(val)], [], None, None))
       ]
 
     self.statementsToAdd( before)
-    return Name(varName, Load())
+    return varName.load()
 
 
 

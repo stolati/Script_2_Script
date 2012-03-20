@@ -49,18 +49,18 @@ class TrySimplifier(nodeTransformer.NodeTransformer):
     handlers = list(handlers)
     handlers.reverse()
 
-    errVarName = self.geneVariable()
+    errVar = self.genVar('err')
     #defining the super handler
     myHdl = ExceptHandler(
         Name('Exception', Load()),
-        Name(errVarName, Store()),
+        errVar.store(),
         [], #not defined yet
     )
 
     currHdl = Raise()
 
     for h in handlers:
-      h = self._transformHandler(h, errVarName)
+      h = self._transformHandler(h, errVar.name)
       h.orelse = [currHdl]
       currHdl = h
 
@@ -99,22 +99,22 @@ class TrySimplifier(nodeTransformer.NodeTransformer):
       )] + orelse
 
 
-    isErrorOrelse = self.geneVariable()
+    isErrorOrelse = self.genVar()
 
     #isErrorOrelse = False
     before = [
-        Assign([Name(isErrorOrelse, Store())], Name('False', Load()) ),
+        isErrorOrelse.assign( Name('False', Load()) ),
     ]
 
     #isErrorOrelse = True ; orelse
     afterBody = [
-        Assign([Name(isErrorOrelse, Store())], Name('True', Load()) ),
+        isErrorOrelse.assign( Name('True', Load()) ),
     ] + orelse
 
     currIf = handlers[0].body
     newIf = [
         If(
-          Name(isErrorOrelse, Load()),
+          isErrorOrelse.load(),
           [Raise()],
           currIf,
         ),

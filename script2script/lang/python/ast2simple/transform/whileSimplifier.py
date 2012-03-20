@@ -73,15 +73,15 @@ class WhileSimplifier(nodeTransformer.NodeTransformer):
   # if hadBreak:
   #   a3
   def _genComplexWhile(self, node):
-      goElse = self.geneVariable()
+      goElse = self.genVar()
       def beforeBreakFactory():
-        return [Assign([Name(goElse, Store())], Name('False', Load()))]
+        return [goElse.assign(Name('False', Load()))]
       chgBreakVisitor = AddIf2Break(beforeBreakFactory)
 
       return [
         #hadBreak = False
         Assign(
-            [Name(goElse, Store())],
+            [goElse.store()],
             Name('True', Load()),
         ),
         #while a1
@@ -92,7 +92,7 @@ class WhileSimplifier(nodeTransformer.NodeTransformer):
         ),
         #if hadBreak : a3
         If(
-            Name(goElse, Load()),
+            goElse.load(),
             node.orelse,
             []
         ),

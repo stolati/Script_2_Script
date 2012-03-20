@@ -111,23 +111,23 @@ class ContainerEmulate(nodeTransformer.NodeTransformer):
     # getValue += value
     # listValue.__setitem__(a, getValue)
 
-    listVar = self.geneVariable()
-    sliceVar = self.geneVariable()
-    contentValVar = self.geneVariable()
+    listVar = self.genVar()
+    sliceVar = self.genVar()
+    contentValVar = self.genVar()
 
     return [
-        Assign( [Name(listVar, Store())], target_value),
-        Assign( [Name(sliceVar, Store())], target_slice),
-        Assign( [Name(contentValVar, Store())],
+        listVar.assign(target_value),
+        sliceVar.assign(target_slice),
+        contentValVar.assign(
           Call(
-            Attribute(Name(listVar, Load()), '__getitem__', Load()),
-            [Name(sliceVar, Load())], [], None, None
+            listVar.load('__getitem__'),
+            [sliceVar.load()], [], None, None
           )
         ),
-        AugAssign(Name(contentValVar, Store()), operator, value),
+        AugAssign(contentValVar.store(), operator, value),
         Expr(Call(
-          Attribute(Name(listVar, Load()), '__setitem__', Load()),
-          [Name(sliceVar, Load()), Name(contentValVar, Load())], [], None, None
+          listVar.load('__setitem__'),
+          [sliceVar.load(), contentValVar.load()], [], None, None
         )),
     ]
 

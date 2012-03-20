@@ -43,29 +43,27 @@ class AssignOnlyOne(nodeTransformer.NodeTransformer):
     => (assign code, assign list, List(varList, dataVariableName))
     """
 
-    tmpVar = self.geneVariable()
-    numValue = self.geneVariable()
+    tmpVar = self.genVar('tmp')
     #tmpVar = iter(dataVariableName)
-    initPart = [Assign([Name(tmpVar, Store())], Call(Name('iter', Load()), [Name(dataVariableName, Load())], [], None, None))]
+    initPart = [tmpVar.assign( Call(Name('iter', Load()), [Name(dataVariableName, Load())], [], None, None))]
 
     moreVars = []
     affectations = []
     assignations = []
     for i, n in enumerate(varList.elts):
-      myTmpName = self.geneVariable(i)
+      myTmpName = self.genVar(i)
       affectations += [
           #tmpVar_<i> = tmpVar.next()
-          Assign( [Name(myTmpName, Store())], Call(Attribute(Name(tmpVar, Load()), 'next', Load()), [], [], None, None ))
+          myTmpName.assign( Call(tmpVar.load('next'), [], [], None, None ))
         ]
 
       if isinstance(n, Tuple) or isinstance(n, List):
-        moreVars.append( (n, myTmpName) )
+        moreVars.append( (n, myTmpName.name) )
       else:
         assignations += [
             #var = tmpVar_<i>
-            Assign( [n], Name(myTmpName, Load()) )
+            Assign( [n], myTmpName.load() )
           ]
-
 
     tryAssign = [
         #try: affectations
@@ -84,7 +82,7 @@ class AssignOnlyOne(nodeTransformer.NodeTransformer):
         #try:
         TryExcept(
           #tmpVar.next()
-          [ Expr(Call(Attribute(Name(tmpVar, Load()), 'next', Load()), [], [], None, None )) ],
+          [ Expr(Call(tmpVar.load('next'), [], [], None, None )) ],
           #except StopIteration: pass
           [ExceptHandler( Name('StopIteration', Load()), None, [Pass()]) ],
           #else : raise ValueError("too many values to unpack")
@@ -111,13 +109,13 @@ class AssignOnlyOne(nodeTransformer.NodeTransformer):
     if isinstance(target, Name) or isinstance(target, Attribute):
       return node
 
-    vName = self.geneVariable()
+    vName = self.genVar()
     before = [
-        Assign([Name(vName, Store())], node.value)
+        vName.assign(node.value)
     ]
     after = []
 
-    toProcess = [(target, vName)]
+    toProcess = [(target, vName.name)]
 
     while(toProcess):
       curTarget, curVName = toProcess.pop(0)
