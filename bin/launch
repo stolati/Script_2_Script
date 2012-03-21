@@ -82,6 +82,32 @@ case "$command" in
   ;;
 
   tests) #launch the unittest
+    if [[ "X${1:-}" = "X--loop" ]]; then
+      loop=true
+      shift
+      name="${1:-}"
+
+      echo ""
+      echo "#########################"
+      echo " Exit the loop by Ctrl-C "
+      echo "#########################"
+      echo ""
+
+      new=""
+      old="different than new"
+      while true; do
+        date
+        old="$new"
+        while [ "X$old" == "X$new" ]; do
+          sleep 1
+          new="$($launch_exe tests "$name" 2>&1 | egrep -v '^Ran [0-9]+ tests in [0-9.]+s$')"
+        done
+        echo "$new"
+      done
+
+      #exit by Ctrl-C
+    fi
+
     (
       name="test*${1:-}*.py"
       cd "$test" #change in case of access by absolute
@@ -119,7 +145,7 @@ case "$command" in
   *)
     echo "$launch_exe init #download/pull the git repository"
     echo "$launch_exe test <num> #launch main with a test"
-    echo "$launch_exe tests [name] #launch unittest modules"
+    echo "$launch_exe tests [--loop] [name] #launch unittest modules"
     echo "$launch_exe pylint #launch pylint on all the files"
     echo "$launch_exe list #list python files in the project"
     echo "$launch_exe todo #return a list of all the todo in files"
