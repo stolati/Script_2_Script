@@ -372,6 +372,36 @@ class TestSimplifier(AstTransformerTestClass):
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+  def test_While(self):
+
+    def test_minimunWhile(m):
+      def ret(r): m(r); return r
+      #TODO a, b = 0, 10 return a segfault, correct that
+      a = 0
+      b = 10
+      while ret(a) < ret(b):
+        m('begin')
+        a += 1
+        m('end')
+
+    def test_testWithList(m):
+      def ret(r): m(r); return r
+      a = list(range(10))
+      while ret(a):
+        m('begin')
+        m(a.pop(0))
+        m('end')
+
+    def test_testListLen(m):
+      def ret(r): m(r); return r
+      l = range(10)
+      while len(ret(l)) < ret(len([1, 2, 3])):
+          m('begin')
+          m(l.pop(0))
+          m('end')
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
 if __name__ == "__main__":
   unittest.main()
 

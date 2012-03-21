@@ -210,37 +210,103 @@ class Simplifying(NodeTransformerAddedStmt):
     return Call(funcVar.load(), argsRes, kargsRes, starargsRes, kWargsRes)
 
 
+  def visit_While(self, node):
+    assert not node.orelse #else must be empty
+
+    cdtVar = self.genVar('cdt')
+    testBefore = node.test
+
+    self.statementToAdd( cdtVar.assign(nodeCopy(node.test)) )
+
+    return While(cdtVar.load(),
+       self.visit_a_StatementList(
+         node.body + [cdtVar.assign(nodeCopy(node.test))]
+       ),
+    [])
+
+
   #def visit_Compare(self, node):
-  #  #leftVar = self.genVar('leftMost')
-  #  #leftExpr = self.visit(node.left)
+  # node.left, node.ops, node.comparators
+  # zip(node.ops, node.comparators)
+  # a < b < c < d =>
+  # if  a < b  is false, does c get executed ?
+  # aExpr = a
+  # bExpr = b
+  # res = aExpr < bExpr
+  # if res :
+  #  cExpr = c # visit_a_StatementList(c)
+  #  res = bExpr < cExpr
+  #  if res :
+  #    dExpr = d
+  #    res = cExpr < dExpr
+  #
+  # res
+  # build the if content, then generic_visit on it
+  # but test if there is < only on names
 
-  #  #for n, (op, comparator) in zip(node.ops, node.comparators)
+
+  # body = node.body + [ a = node.test ]
+  # body = self.visit_a_StatementList( node.body )
+  #  node.body = body
+
+  # and
+  # a and b and c
+  # res = a()
+  # if res:
+  #  res = b()
+  #  if res:
+  #    res = c()
+  #
+  # res
+  # build the if content, then generic_visit on it
+
+  # or
+  # a or b or c
+  # res = True
+  # res = not a()
+  # if not res:
+  #  res = not b()
+  #  if not res:
+  #    c()
+  #    res = False
+  #
+  # res
+  # build the if content, then generic_visit on it
+
+  # or
+  # a or b or c
+  # res = a()
+  # if not res:
+  #  res = b()
+  #  if not res:
+  #    res = c()
+  #
+  # res
+  # build the if content, then generic_visit on it
 
 
+  # IfExpr
+  # t = test()
+  # if res :
+  #   valRes = body
+  # else:
+  #   valRes = orelse
+  #
+  # res
+  # build the if content, then generic_visit on it
 
-  #  # Compare(expr left, cmpop* ops, expr* comparators)
 
-
-
-
-
-
-
-
-    return self.generic_visit(node)
-
-    #left
-    #cmpop * ops
-    #expr * comparators
 
 # - need more block intelligence
 # BoolOp(boolop op, expr* values)
 # IfExp(expr test, expr body, expr orelse)
 # Lambda(arguments args, expr body)
+
 # ListComp(expr elt, comprehension* generators)
 # SetComp(expr elt, comprehension* generators)
 # DictComp(expr key, expr value, comprehension* generators)
 # GeneratorExp(expr elt, comprehension* generators)
+
 #
 # - can be done easely
 # Compare(expr left, cmpop* ops, expr* comparators)
