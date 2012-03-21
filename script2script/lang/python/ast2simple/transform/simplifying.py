@@ -117,6 +117,7 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_Tuple(self, node):
+    assert isinstance(node.ctx, Load)
 
     nameLoad = self.visit_List(node) #duck typing powaaaa
 
@@ -130,6 +131,7 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_List(self, node):
+    assert isinstance(node.ctx, Load)
     varList = self.genVar('list')
     self.statementToAdd(
       #varList = tuple()
