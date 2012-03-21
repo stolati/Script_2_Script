@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 import ast
 
+
+__all__ = ['VariableGenerator', 'NodeVisitor', 'node2json', 'nodeCopy', 'iter_nodes', 'NodeTransformer', 'NodeTransformerAddedStmt']
+
+
 class VariableGenerator(object):
   """
   Generator a unique variable name
@@ -119,9 +123,37 @@ class Node2Json:
     return res
 
 
+def nodeCopy(node):
+  return NodeCopy().visit(node)
 
 
-class __iter_nodes(NodeVisitor):
+class NodeCopy:
+
+  def _specific_visit(self, node):
+    if node is None: return None
+    if isinstance(node, str): return node #str are immutable
+    if isinstance(node, int): return node #int are immutable
+    if hasattr(node, '__iter__'):
+      return [self.visit(n) for n in node]
+    raise Exception('node type not known %s for element %s' % (node.__class__, node))
+
+  def visit(self, node):
+    if not isinstance(node, ast.AST): return self._specific_visit(node)
+    return self.generic_visit(node)
+
+
+  def generic_visit(self, node):
+    assert isinstance(node, ast.AST)
+    #special case for Raise which has not so many elements it say
+
+    params = {f:self.visit(getattr(node, f)) for f in node._fields}
+    return node.__class__(**params)
+
+
+
+
+
+class IterNodes(NodeVisitor):
 
   def __init__(self): self._nodes = []
 
@@ -137,7 +169,7 @@ def iter_nodes(node):
   """
   return a node iterator, parsing all the nodes one by one
   """
-  return __iter_nodes()(node)
+  return IterNodes()(node)
 
 
 
@@ -224,6 +256,10 @@ class NodeTransformerAddedStmt(NodeTransformer):
 
   to add a single statement : self.statementToAdd( <stmt> )
   to add multiple statements : self.statementsToAdd( <stmt list> )
+
+  when using an element with body elements, use this on the body part :
+  not this one => self.generic_visit(node)
+  this one year => self.visit_a_StatementList(node)
   """
 
   def __init__(self):

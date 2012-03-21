@@ -3,6 +3,8 @@ import unittest, ast
 
 from script2script.lang.python.ast2simple.transform.nodeTransformer import *
 
+
+
 class TestVariableGenerator(unittest.TestCase):
 
   def test_uniticy(self):
@@ -53,6 +55,62 @@ class TestNodeVisitor(unittest.TestCase):
 
     iterRes = [n.__class__.__name__ for n in iter_nodes(nodes)]
     self.assertEquals(waitedRes, iterRes)
+
+
+
+class TestNodeCopy(unittest.TestCase):
+
+  def test_copy(self):
+    oriNodes = ast.If(
+        ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None),
+        [
+          ast.Print(None, ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None), False),
+        ],
+        [],
+    )
+    oriJson = node2json(oriNodes)
+
+    goalNodes = nodeCopy(oriNodes)
+    goalJson = node2json(goalNodes)
+
+    self.assertEquals(oriJson, goalJson)
+    self.assertIsNot(oriJson, goalJson)
+
+    #test that elements are not exactly the sames, that a copy have been done
+    for nOri, nGoal in zip( iter_nodes(oriNodes), iter_nodes(goalNodes)):
+      self.assertIsNot(nOri, nGoal)
+      #TODO remove once we know that same structure give same results
+      self.assertEquals( node2json(nOri), node2json(nGoal) )
+
+
+class TestNode2Json(unittest.TestCase):
+
+  def test_copy(self):
+    oriNodes = ast.If(
+        ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None),
+        [
+          ast.Print(None, ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None), False),
+        ],
+        [],
+    )
+    jsonOriNodes = {
+      'body': [{'dest': 'None',
+                 'nl': 'False',
+                 'values': {'args': [{'ctx': {}, 'elts': []}],
+                            'func': {'ctx': {}, 'id': 'toto'},
+                            'keywords': [],
+                            'kwargs': 'None',
+                            'starargs': 'None'}}],
+       'orelse': [],
+       'test': {'args': [{'ctx': {}, 'elts': []}],
+                'func': {'ctx': {}, 'id': 'toto'},
+                'keywords': [],
+                'kwargs': 'None',
+                'starargs': 'None'}
+    }
+
+    jsonNodes = node2json(oriNodes)
+    self.assertEquals(jsonOriNodes, jsonNodes)
 
 
 class TestNodeTransformer(unittest.TestCase):
