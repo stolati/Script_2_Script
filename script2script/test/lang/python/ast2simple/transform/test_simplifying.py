@@ -469,6 +469,35 @@ class TestSimplifier(AstTransformerTestClass):
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+  def test_lambda(self):
+
+    def test_simpleLambda(m):
+      def ret(r): m(r); return r
+      n = lambda r: m(ret(r))
+      n('toto')
+      o = lambda r: ret(r)
+      n( o('titi') )
+
+    def test_complexLambda(m):
+      def ret(r): m(r); return r
+      n = lambda x : lambda y: ret(ret(x)*ret(y))
+      o = lambda a : lambda b: ret(a < b)
+
+      for i in range(5):
+        for j in range(5):
+          m(n(i)(j))
+          m(o(i)(j))
+
+    def test_vithVariables(m):
+      def ret(r): m(r); return r
+      for i in range(5):
+        for j in range(5):
+          o = lambda : i * j
+          m(o())
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
 
 if __name__ == "__main__":
   unittest.main()

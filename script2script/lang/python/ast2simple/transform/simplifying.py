@@ -315,19 +315,24 @@ class Simplifying(NodeTransformerAddedStmt):
 
     return tmpVar.load()
 
-  ##transform lambda into real def function
-  #def visit_Lambda(self, node):
-  #  node.args
-  #  node.body
+  #transform lambda into real def function
+  def visit_Lambda(self, node):
+    fctName = self.genVar('fct')
 
+    args = nodeCopy(node.args)
+    body = node.body
 
+    res = self.visit_a_StatementList([FunctionDef(
+        fctName.name,
+        args,
+        [Return(body)],
+        [])])
+    self.statementsToAdd(res)
 
-
+    return fctName.load()
 
 
 # - need more block intelligence
-# Lambda(arguments args, expr body)
-#
 # ListComp(expr elt, comprehension* generators)
 # SetComp(expr elt, comprehension* generators)
 # DictComp(expr key, expr value, comprehension* generators)
