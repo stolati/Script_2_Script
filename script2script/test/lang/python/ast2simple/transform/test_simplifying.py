@@ -497,11 +497,58 @@ class TestSimplifier(AstTransformerTestClass):
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+  def test_ListComp(self):
 
+    def test_simple(m):
+      def ret(r): m(r); return r
+
+      m( [ret( (e, e) ) for e in ret(range(10))] )
+      m( [ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5))] )
+      m( [ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) ])
+      m( [ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) if ret(ret(a) > 7)])
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
+  def test_SetComp(self):
+
+    def test_simple(m):
+      def ret(r): m(r); return r
+
+      m( {ret( (e, e) ) for e in ret(range(10))} )
+      m( {ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5))} )
+      m( {ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) })
+      m( {ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) if ret(ret(a) > 7)})
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
+  def test_SetDict(self):
+
+    def test_simple(m):
+      def ret(r): m(r); return r
+      m( {ret(e):ret(e) for e in ret(range(10))} )
+      m( {ret(a):ret(b) for a in ret(range(10)) for b in ret(range(5))} )
+      m( {ret(a):ret(b) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) } )
+      m( {ret(a):ret(b) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) if ret(ret(a) > 7)} )
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
+  def test_GeneratorComp(self):
+
+    def test_simple(m):
+      def ret(r): m(r); return r
+
+      m( list( (ret( (e, e) ) for e in ret(range(10))) ) )
+      m( list( (ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5))) ) )
+      m( list( (ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) ) ) )
+      m( list( (ret( (a, b) ) for a in ret(range(10)) for b in ret(range(5)) if ret(ret(b) < 3) if ret(ret(a) > 7))) )
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
 if __name__ == "__main__":
   unittest.main()
-
 
 
 #__EOF__

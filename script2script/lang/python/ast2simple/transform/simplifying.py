@@ -332,12 +332,97 @@ class Simplifying(NodeTransformerAddedStmt):
     return fctName.load()
 
 
-# - need more block intelligence
-# ListComp(expr elt, comprehension* generators)
-# SetComp(expr elt, comprehension* generators)
-# DictComp(expr key, expr value, comprehension* generators)
-# GeneratorExp(expr elt, comprehension* generators)
-#
+  def _transformComprIfs(self, ifs, inside):
+    """
+    Transform transformation ifs
+    putting inside all the imbricated ifs
+    return a list of statements
+    """
+    if len(ifs) == 0: return inside
+    head, tail = ifs[0], ifs[1:]
+
+    return [ If(head, self._transformComprIfs(tail, inside), []) ]
+
+
+
+  def _transformComprFors(self, comprList, inside):
+    """
+    Generate the "for"s of a comprehension, putting inside at the center
+    Return a list of statements
+    """
+    if len(comprList) == 0: return inside
+    head, tail = comprList[0], comprList[1:]
+
+    return [
+        For(head.target, head.iter,
+          self._transformComprIfs(head.ifs,
+            self._transformComprFors(tail, inside))
+          , [])
+    ]
+
+    return comprList
+
+
+  def visit_ListComp(self, node):
+    genList = self.genVar('genList')
+
+    self.statementToAdd(genList.assign(Call(Name('list', Load()), [], [], None, None)))
+    append = [ Expr(Call(genList.load('append'), [node.elt], [], None, None)) ]
+    elements = self._transformComprFors(node.generators, append)
+    res = self.visit_a_StatementList( elements )
+    self.statementsToAdd(res)
+
+    return genList.load()
+
+  def visit_SetComp(self, node):
+    genSet = self.genVar('genSet')
+
+    self.statementToAdd(genSet.assign(Call(Name('set', Load()), [], [], None, None)))
+    append = [ Expr(Call(genSet.load('add'), [node.elt], [], None, None)) ]
+    elements = self._transformComprFors(node.generators, append)
+    res = self.visit_a_StatementList( elements )
+    self.statementsToAdd(res)
+
+    return genSet.load()
+
+  def visit_DictComp(self, node):
+    genDict = self.genVar('genDict')
+    keyVar, valVar = self.genVar('key'), self.genVar('val')
+
+    self.statementToAdd(genDict.assign(Call(Name('dict', Load()), [], [], None, None)))
+    append = [
+        valVar.assign(node.value),
+        keyVar.assign(node.key),
+        Expr(Call(genDict.load('__setitem__'), [keyVar.load(), valVar.load()], [], None, None))
+    ]
+    elements = self._transformComprFors(node.generators, append)
+    res = self.visit_a_StatementList( elements )
+    self.statementsToAdd(res)
+
+    return genDict.load()
+
+
+  def visit_GeneratorExp(self, node):
+    myFct = self.genVar('myFct')
+    myGenerator = self.genVar('myGenerator')
+
+    append = [ Expr(Yield(node.elt)) ]
+    elements = self._transformComprFors(node.generators, append)
+
+    fctBody = [
+        FunctionDef( myFct.name,
+          arguments([], None, None, []),
+          elements,
+          []),
+        myGenerator.assign(Call(myFct.load(), [], [], None, None)),
+    ]
+
+    res = self.visit_a_StatementList( fctBody )
+    self.statementsToAdd(res)
+
+    return myGenerator.load()
+
+
 #- the grammar constrains where yield expressions can occur
 #- Do not do it now, wait way more
 # Yield(expr? value)
@@ -345,7 +430,6 @@ class Simplifying(NodeTransformerAddedStmt):
 #
 #- the following expression can appear in assignment context
 # Attribute(expr value, identifier attr, expr_context ctx)
-# Subscript(expr value, slice slice, expr_context ctx)
 #
 # ---- content -----
 #
