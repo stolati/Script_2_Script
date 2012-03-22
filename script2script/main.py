@@ -10,7 +10,7 @@ from script2script.lang.python.ast2simple.transform.cleanJumps import CleanJumps
 from script2script.lang.python.ast2simple.transform.trySimplifier import TrySimplifier
 
 from script2script.lang.python.ast2simple.transform.rmSyntaxicSugar import DeleteOnlyOne, AssignOnlyOne
-from script2script.lang.python.ast2simple.transform.listExtention import ListExtention, TupleExtention, DictExtention
+from script2script.lang.python.ast2simple.transform.simplifying import Simplifying
 
 
 from script2script.lang.python.ast2simple.ast2simple import PythonAst2Simple
@@ -32,7 +32,7 @@ if __name__ == "__main__":
   #do the visitors on it
   for m in [
       ForIntoWhile, WhileSimplifier, CleanJumps, TrySimplifier, ContainerEmulate,
-      DeleteOnlyOne, AssignOnlyOne, ListExtention, TupleExtention, DictExtention, TrySimplifier,
+      DeleteOnlyOne, AssignOnlyOne, TrySimplifier, Simplifying
   ]: content.visitWith(m())
 
   print content

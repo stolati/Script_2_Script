@@ -284,18 +284,19 @@ class NodeTransformerAddedStmt(NodeTransformer):
   def generic_visit(self, node):
     #list the body insides all the ast parts
     bodyContainer = {
-          ast.Module :      ['body'],
-          ast.Interactive : ['body'],
-          ast.Expression :  ['body'],
-          ast.Suite :       ['body'],
-          ast.FunctionDef : ['body'],
-          ast.ClassDef :    ['body'],
-          ast.For :         ['body', 'orelse'],
-          ast.While :       ['body', 'orelse'],
-          ast.If :          ['body', 'orelse'],
-          ast.With :        ['body'],
-          ast.TryExcept :   ['body', 'orelse'],
-          ast.TryFinally :  ['body', 'finalbody'],
+          ast.Module :       ['body'],
+          ast.Interactive :  ['body'],
+          ast.Expression :   ['body'],
+          ast.Suite :        ['body'],
+          ast.FunctionDef :  ['body'],
+          ast.ClassDef :     ['body'],
+          ast.For :          ['body', 'orelse'],
+          ast.While :        ['body', 'orelse'],
+          ast.If :           ['body', 'orelse'],
+          ast.With :         ['body'],
+          ast.TryExcept :    ['body', 'orelse'],
+          ast.TryFinally :   ['body', 'finalbody'],
+          ast.excepthandler: ['body'],
         }
 
     for k, fieldsName in bodyContainer.iteritems():

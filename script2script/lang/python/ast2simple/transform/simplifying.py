@@ -4,7 +4,9 @@ from ast import *
 from nodeTransformer import *
 
 #TODO take care of the Yield element (maybe before that, to be simplier)
-#TODO take care of the attribute element (maybe just for load stuffs)
+#TODO add Invert for python -> simple
+#TODO do augassing elements
+#TODO do an optimiser for removing variables (too much of them)
 
 class Simplifying(NodeTransformerAddedStmt):
   #def statementToAdd(self, stm): self.bodyToAddBefore[-1].append(stm)
@@ -46,7 +48,6 @@ class Simplifying(NodeTransformerAddedStmt):
     ])
 
     return varOp.load()
-
 
 
   def visit_Dict(self, node):
@@ -203,7 +204,9 @@ class Simplifying(NodeTransformerAddedStmt):
       self.statementToAdd( kWargsVar.assign(kWargsExpr))
       kWargsRes = kWargsVar.load()
 
-    return Call(funcVar.load(), argsRes, kargsRes, starargsRes, kWargsRes)
+    resCallVar = self.genVar('resCall')
+    self.statementToAdd( resCallVar.assign( Call(funcVar.load(), argsRes, kargsRes, starargsRes, kWargsRes) ) )
+    return resCallVar.load()
 
 
   def visit_While(self, node):
@@ -221,10 +224,10 @@ class Simplifying(NodeTransformerAddedStmt):
 
   def visit_Compare(self, node):
     #to remove recursive problems
-    if isinstance(node.left, Name) \
-        and len(node.comparators) == 1 \
-        and isinstance(node.comparators[0], Name):
-      return self.generic_visit(node)
+    #if isinstance(node.left, Name) \
+    #    and len(node.comparators) == 1 \
+    #    and isinstance(node.comparators[0], Name):
+    #  return self.generic_visit(node)
 
     #TODO the if test on res is done each times, optimise that
 
@@ -240,7 +243,7 @@ class Simplifying(NodeTransformerAddedStmt):
       #if res:
       self.statementsToAdd([ If( resVar.load(),
         #rightVar = comp
-        self.visit_a_StatementList([rightVar.assign( comp )]) +
+        self.visit_a_StatementList([rightVar.assign(comp)]) +
         #res = leftVar < rightVar
         [resVar.assign(Compare(leftVar.load(), [ops], [rightVar.load()]))]
       ,[])])
@@ -248,18 +251,12 @@ class Simplifying(NodeTransformerAddedStmt):
     return resVar.load()
 
   def visit_BoolOp(self, node):
-    #to remove recursive problems
-    if len(node.values) == 2\
-        and isinstance(node.values[0], Name) \
-        and isinstance(node.values[1], Name):
-      return self.generic_visit(node)
-
     if isinstance(node.op, Or): return self.visit_BoolOpOr(node)
     if isinstance(node.op, And): return self.visit_BoolOpAnd(node)
     assert False
 
-  def visit_BoolOpOr(self, node): #visit special for and comparators
 
+  def visit_BoolOpOr(self, node): #visit special for and comparators
     resVar = self.genVar('res')
     self.statementToAdd(resVar.assign(Name('False', Load())))
 
@@ -278,7 +275,6 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_BoolOpAnd(self, node): #visit special for and comparators
-
     resVar = self.genVar('res')
     self.statementToAdd(resVar.assign(Name('True', Load())))
     #TODO can be optimised by imbricating if statements
@@ -293,13 +289,13 @@ class Simplifying(NodeTransformerAddedStmt):
     return resVar.load()
 
 
-  def visit_IfExpr(self, node):
+  def visit_IfExp(self, node):
     tmpVar = self.genVar('tmp')
 
     res = self.visit_a_StatementList([
      If(node.test,
-       tmpVar.assign(node.body),
-       tmpVar.assign(node.orelse),
+       [tmpVar.assign(node.body)],
+       [tmpVar.assign(node.orelse)],
     )])
 
     self.statementsToAdd(res)
@@ -422,6 +418,5 @@ class Simplifying(NodeTransformerAddedStmt):
     ])
 
     return tmpVar.load()
-
 
 #__EOF__
