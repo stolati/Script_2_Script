@@ -355,20 +355,38 @@ class TestSimplifier(AstTransformerTestClass):
           m(ret(i) in ret(range(j)))
           m(ret(i) not in ret(range(j)))
 
-    #def test_complexCmp(m):
-    #  def retall(*args, **kargs): m(args, kargs); return (args, kargs)
-    #  def calonm(): m('calOnM'); return m
-    #  d = {'1':2, '3':4, '5':6}
-    #  calonm()(retall(retall('b')))
-    #  calonm()( *retall(retall(*range(10), **{'toto':1})))
+    def test_complexCmp(m):
+      def ret(r): m(r); return r
+      for i in range(5):
+        for j in range(5):
+          for k in range(5):
+            for l in range(5):
+              m(ret(i) == ret(j) == ret(k) == ret(l))
+              m(ret(i) != ret(j) != ret(k) != ret(l))
+              m(ret(i) < ret(j) < ret(k) < ret(l))
+              m(ret(i) <= ret(j) <= ret(k) <= ret(l))
+              m(ret(i) > ret(j) > ret(k) > ret(l))
+              m(ret(i) >= ret(j) >= ret(k) >= ret(l))
+              m(ret(i) is ret(j) is ret(k) is ret(l))
+              m(ret(i) is not ret(j) is not ret(k) is not ret(l))
 
-    #def test_SuiteCmp(m):
-    #  def retall(*args, **kargs): m(args, kargs); return (args, kargs)
-    #  def calonm(): m('calOnM'); return m
-    #  d = {'1':2, '3':4, '5':6}
-    #  calonm()(retall(retall('b')))
-    #  calonm()( *retall(retall(*range(10), **{'toto':1})))
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+  def test_Call(self):
+
+    def test_complexCall(m):
+      def retall(*args, **kargs): m(args, kargs); return (args, kargs)
+      def calonm(): m('calOnM'); return m
+      d = {'1':2, '3':4, '5':6}
+      calonm()(retall(retall('b')))
+      calonm()( *retall(retall(*range(10), **{'toto':1})))
+
+    def test_SuiteCall(m):
+      def retall(*args, **kargs): m(args, kargs); return (args, kargs)
+      def calonm(): m('calOnM'); return m
+      d = {'1':2, '3':4, '5':6}
+      calonm()(retall(retall('b')))
+      calonm()( *retall(retall(*range(10), **{'toto':1})))
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
@@ -376,9 +394,7 @@ class TestSimplifier(AstTransformerTestClass):
 
     def test_minimunWhile(m):
       def ret(r): m(r); return r
-      #TODO a, b = 0, 10 return a segfault, correct that
-      a = 0
-      b = 10
+      a, b = 0, 10
       while ret(a) < ret(b):
         m('begin')
         a += 1
@@ -401,6 +417,58 @@ class TestSimplifier(AstTransformerTestClass):
           m('end')
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+  def test_BoolOp(self):
+
+    def test_simpleBoolOp(m):
+      def ret(r): m(r); return r
+      for i in (True, False):
+        for j in (True, False):
+          m(ret(i) and ret(j))
+          m(ret(i) or ret(j))
+
+    def test_complexBoolOp(m):
+      def ret(r): m(r); return r
+      for i in (True, False):
+        for j in (True, False):
+          for k in (True, False):
+            for l in (True, False):
+              m(ret(i) and ret(j) and ret(k) and ret(l))
+              m(ret(i) or ret(j) or ret(k) or ret(l))
+
+
+    def test_complexValues(m):
+      def ret(r): m(r); return r
+      for i in (True, False, [], [1], (), (1, 2), 0, 1):
+        for j in (True, False, [], [1], (), (1, 2), 0, 1):
+          for k in (True, False, [], [1], (), (1, 2), 0, 1):
+            for l in (True, False, [], [1], (), (1, 2), 0, 1):
+              m(ret(i) and ret(j) and ret(k) and ret(l))
+              m(ret(i) or ret(j) or ret(k) or ret(l))
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
+  def test_IfExpr(self):
+
+    def test_simpleIfExpr(m):
+      def ret(r): m(r); return r
+      for i in (0, 1, True, False):
+        for j in (0, 1, True, False):
+          for k in (0, 1, True, False):
+            m(ret(i) if ret(j) else ret(k))
+
+    def test_complexIfExpr(m):
+      def ret(r): m(r); return r
+      for i in (0, 1, True, False):
+        for j in (0, 1, True, False):
+          for k in (0, 1, True, False):
+            for l in (0, 1, True, False):
+              for n in (0, 1, True, False):
+                m(ret(i) if ret(j) else ret(k) if ret(l) else ret(n))
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
 
 if __name__ == "__main__":
   unittest.main()

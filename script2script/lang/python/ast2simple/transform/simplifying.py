@@ -117,7 +117,8 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_Tuple(self, node):
-    assert isinstance(node.ctx, Load)
+    if not isinstance(node.ctx, Load):
+      return self.generic_visit(node)
 
     nameLoad = self.visit_List(node) #duck typing powaaaa
 
@@ -131,7 +132,9 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_List(self, node):
-    assert isinstance(node.ctx, Load)
+    if not isinstance(node.ctx, Load):
+      return self.generic_visit(node)
+
     varList = self.genVar('list')
     self.statementToAdd(
       #varList = tuple()
@@ -213,8 +216,6 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_While(self, node):
-    assert not node.orelse #else must be empty
-
     cdtVar = self.genVar('cdt')
     testBefore = node.test
 
@@ -222,98 +223,115 @@ class Simplifying(NodeTransformerAddedStmt):
 
     return While(cdtVar.load(),
        self.visit_a_StatementList(
-         node.body + [cdtVar.assign(nodeCopy(node.test))]
+         node.body + self.visit_a_StatementList([cdtVar.assign(nodeCopy(node.test))])
        ),
-    [])
+    self.visit(node.orelse))
 
 
-  #def visit_Compare(self, node):
-  # node.left, node.ops, node.comparators
-  # zip(node.ops, node.comparators)
-  # a < b < c < d =>
-  # if  a < b  is false, does c get executed ?
-  # aExpr = a
-  # bExpr = b
-  # res = aExpr < bExpr
-  # if res :
-  #  cExpr = c # visit_a_StatementList(c)
-  #  res = bExpr < cExpr
-  #  if res :
-  #    dExpr = d
-  #    res = cExpr < dExpr
-  #
-  # res
-  # build the if content, then generic_visit on it
-  # but test if there is < only on names
+  def visit_Compare(self, node):
+    #to remove recursive problems
+    if isinstance(node.left, Name) \
+        and len(node.comparators) == 1 \
+        and isinstance(node.comparators[0], Name):
+      return self.generic_visit(node)
+
+    #TODO the if test on res is done each times, optimise that
+
+    resVar = self.genVar('res')
+    self.statementToAdd( resVar.assign( Name('True', Load()) ) )
+
+    rightVar = self.genVar('lefOp')
+    self.statementToAdd( rightVar.assign( self.visit(node.left) ) )
+
+    for n, (ops, comp) in enumerate(zip(node.ops, node.comparators)):
+      leftVar, rightVar = rightVar, self.genVar('rightOp%s' % n)
+
+      #if res:
+      self.statementsToAdd([ If( resVar.load(),
+        #rightVar = comp
+        self.visit_a_StatementList([rightVar.assign( comp )]) +
+        #res = leftVar < rightVar
+        [resVar.assign(Compare(leftVar.load(), [ops], [rightVar.load()]))]
+      ,[])])
+
+    return resVar.load()
+
+  def visit_BoolOp(self, node):
+    #to remove recursive problems
+    if len(node.values) == 2\
+        and isinstance(node.values[0], Name) \
+        and isinstance(node.values[1], Name):
+      return self.generic_visit(node)
+
+    if isinstance(node.op, Or): return self.visit_BoolOpOr(node)
+    if isinstance(node.op, And): return self.visit_BoolOpAnd(node)
+    assert False
+
+  def visit_BoolOpOr(self, node): #visit special for and comparators
+
+    resVar = self.genVar('res')
+    self.statementToAdd(resVar.assign(Name('False', Load())))
+
+    notResVar = self.genVar('notRes')
+
+    for val in node.values:
+      #if res:
+      self.statementsToAdd([
+        notResVar.assign(UnaryOp(Not(), resVar.load()) ),
+        If( notResVar.load(),
+        #res = val
+        self.visit_a_StatementList([resVar.assign(val)])
+      ,[])])
+
+    return resVar.load()
 
 
-  # body = node.body + [ a = node.test ]
-  # body = self.visit_a_StatementList( node.body )
-  #  node.body = body
+  def visit_BoolOpAnd(self, node): #visit special for and comparators
 
-  # and
-  # a and b and c
-  # res = a()
-  # if res:
-  #  res = b()
-  #  if res:
-  #    res = c()
-  #
-  # res
-  # build the if content, then generic_visit on it
+    resVar = self.genVar('res')
+    self.statementToAdd(resVar.assign(Name('True', Load())))
+    #TODO can be optimised by imbricating if statements
 
-  # or
-  # a or b or c
-  # res = True
-  # res = not a()
-  # if not res:
-  #  res = not b()
-  #  if not res:
-  #    c()
-  #    res = False
-  #
-  # res
-  # build the if content, then generic_visit on it
+    for val in node.values:
+      #if res:
+      self.statementsToAdd([ If( resVar.load(),
+        #res = val
+        self.visit_a_StatementList([resVar.assign(val)])
+      ,[])])
 
-  # or
-  # a or b or c
-  # res = a()
-  # if not res:
-  #  res = b()
-  #  if not res:
-  #    res = c()
-  #
-  # res
-  # build the if content, then generic_visit on it
+    return resVar.load()
 
 
-  # IfExpr
-  # t = test()
-  # if res :
-  #   valRes = body
-  # else:
-  #   valRes = orelse
-  #
-  # res
-  # build the if content, then generic_visit on it
+  def visit_IfExpr(self, node):
+    tmpVar = self.genVar('tmp')
+
+    res = self.visit_a_StatementList([
+     If(node.test,
+       tmpVar.assign(node.body),
+       tmpVar.assign(node.orelse),
+    )])
+
+    self.statementsToAdd(res)
+
+    return tmpVar.load()
+
+  ##transform lambda into real def function
+  #def visit_Lambda(self, node):
+  #  node.args
+  #  node.body
+
+
+
 
 
 
 # - need more block intelligence
-# BoolOp(boolop op, expr* values)
-# IfExp(expr test, expr body, expr orelse)
 # Lambda(arguments args, expr body)
-
+#
 # ListComp(expr elt, comprehension* generators)
 # SetComp(expr elt, comprehension* generators)
 # DictComp(expr key, expr value, comprehension* generators)
 # GeneratorExp(expr elt, comprehension* generators)
-
-#
-# - can be done easely
-# Compare(expr left, cmpop* ops, expr* comparators)
-# Call(expr func, expr* args, keyword* keywords, expr? starargs, expr? kwargs)
-#
 #
 #- the grammar constrains where yield expressions can occur
 #- Do not do it now, wait way more
