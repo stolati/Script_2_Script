@@ -547,6 +547,22 @@ class TestSimplifier(AstTransformerTestClass):
 
     self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
 
+
+  def test_Attribute(self):
+
+    def test_simple(m):
+      def ret(r): m(r); return r
+      class Foo(object): pass
+      f = Foo()
+      f.titi = 10
+      ret(f.titi)
+      f.tutu, f.toto = f, f
+      ret(f.tutu.toto.titi)
+      ret(f.tutu.toto.toto.tutu.toto.tutu.toto.tutu.tutu.titi)
+
+    self.checkFctOnLocals(locals(), Simplifying(), mock.Mock)
+
+
 if __name__ == "__main__":
   unittest.main()
 

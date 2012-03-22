@@ -3,17 +3,8 @@ import ast
 from ast import *
 from nodeTransformer import *
 
-#TODO take care of the while command
-#     it should copy the added command before and after
-
-
-#TODO make a copy command for ast elements
-
-#While element : body => a = element ; while a; body, a = element
-#a and b => if
-
-
-
+#TODO take care of the Yield element (maybe before that, to be simplier)
+#TODO take care of the attribute element (maybe just for load stuffs)
 
 class Simplifying(NodeTransformerAddedStmt):
   #def statementToAdd(self, stm): self.bodyToAddBefore[-1].append(stm)
@@ -422,36 +413,15 @@ class Simplifying(NodeTransformerAddedStmt):
 
     return myGenerator.load()
 
+  def visit_Attribute(self, node):
+    if not isinstance(node.ctx, Load): return self.generic_visit(node)
 
-#- the grammar constrains where yield expressions can occur
-#- Do not do it now, wait way more
-# Yield(expr? value)
-#
-#
-#- the following expression can appear in assignment context
-# Attribute(expr value, identifier attr, expr_context ctx)
-#
-# ---- content -----
-#
-#	expr_context = Load | Store | Del | AugLoad | AugStore | Param
-#
-#	slice = Ellipsis | Slice(expr? lower, expr? upper, expr? step) 
-#	      | ExtSlice(slice* dims) 
-#	      | Index(expr value) 
-#
-#	boolop = And | Or 
-#
-#
-#	cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
-#
-#	comprehension = (expr target, expr iter, expr* ifs)
-#
-#	arguments = (expr* args, identifier? vararg, 
-#		     identifier? kwarg, expr* defaults)
-#
-#        -- keyword arguments supplied to call
-#        keyword = (identifier arg, expr value)
-#
-#        -- import name with optional 'as' alias.
-#        alias = (identifier name, identifier? asname)
+    tmpVar = self.genVar('tmp')
+    self.statementsToAdd([
+      tmpVar.assign(Attribute(self.visit(node.value), node.attr, Load())),
+    ])
+
+    return tmpVar.load()
+
+
 #__EOF__
