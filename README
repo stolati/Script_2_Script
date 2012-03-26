@@ -13,23 +13,6 @@ Status :
 
 
 
-GLOBAL TODO :
- - Change the repository structure 
-
-   from :
-   simple
-   lang/python/ast2simple/transformations
-
-   to :
-   simple
-   python/transformations
-   javascript
-
- - Do minestorme
-
-
-
-
 What simple sould have :
  - function and class
  - variable declaration each time (as an object of more precise)
