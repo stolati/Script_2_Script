@@ -17,13 +17,7 @@ from script2script.lang.python.ast2simple.ast2simple import PythonAst2Simple
 
 from script2script.simple.simple import dumpSimple, dumpJson
 
-
-#True, False and None are variables
-
-if __name__ == "__main__":
-
-  print sys.argv
-  f = sys.argv[1]
+def processFile(f):
   contentStr = open(f).read()
 
   content = parse(contentStr, f)
@@ -42,6 +36,12 @@ if __name__ == "__main__":
   simpleAst = content._content
   print dumpSimple(simpleAst)
   print dumpJson(simpleAst)
+
+if __name__ == "__main__":
+
+  print sys.argv
+  processFile(sys.argv[1])
+
 
 #__EOF__
 
