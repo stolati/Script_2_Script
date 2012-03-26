@@ -4,10 +4,12 @@ from getopt import getopt, GetoptError
 from glob import glob
 import re
 import unittest
+import subprocess
 
 
 def config(base_path):
-  res = {
+  tmp = {
+    'base_path':'%(base_path)s',
     'bin'      :'%(base_path)s/bin',
     'curScript':'%(base_path)s/bin/launch.py',
     'basename' :'launch.py',
@@ -20,7 +22,10 @@ def config(base_path):
     'test'     :'%(base_path)s/script2script/test',
     'wiki'     :'%(base_path)s/wiki',
   }
-  return {k:v%{'base_path':base_path} for k, v in res.iteritems() }
+  res = {}
+  for k, v in tmp.iteritems():
+    res[k] = v % {'base_path':base_path}
+  return res
 
 
 def guessS2S_Path():
@@ -45,6 +50,20 @@ def getModule(fPath):
 
   sys.path = sys_save
   return res
+
+
+def git_pull(git_path, dir_path):
+  dir_name = os.path.basename(dir_path)
+
+  if not os.path.isdir(dir_path):
+    print "Cloning %s" % dir_path
+    subprocess.call(['git', 'clone', dir_path], shell=True)
+  else:
+    print "Pulling %s" % dir_path
+    cd_save = os.getcwd()
+    os.chdir(dir_path)
+    subprocess.call('git pull', shell=True)
+    os.chdir(cd_save)
 
 
 class Execute(object):
@@ -185,16 +204,23 @@ class Execute(object):
     testRunner(testSuite)
 
 
-
-  def cmd_init(self):
+  def cmd_init(self, params):
     """%(basename)s init #download/pull the gits repositories"""
+    if len(params) != 0: return self.help("init command don't take value arguments")
 
-#    echo "$launch_exe init #download/pull the git repository"
+    git_pull('git@github.com:stolati/Script_2_Script.git', self._config['base_path'])
+    git_pull('git://pyjs.org/git/pyjamas.git', self._config['refs'] + '/Pyjamas')
+    git_pull('http://git.nuitka.net/Nuitka.git', self._config['refs']+ '/Nuitka')
+    git_pull('git://gitorious.org/shedskin/mainline.git', self._config['refs']+ '/Shedskin')
+    git_pull('git@github.com:stolati/Script_2_Script.wiki.git', self._config['wiki'])
+    #mercurial_pull https://bitbucket.org/pypy/pypy "$refs/Pypy")
+    #mercurial_pull https://mock.googlecode.com/hg "$refs/mock")
+
+    #( cd "$refs/Pyjamas" ; python bootstrap.py ; )
+
+
 #    echo "$launch_exe pylint #launch pylint on all the files"
 #    echo "$launch_exe docs #generate documentation"
-
-
-
 
 
 
@@ -217,6 +243,7 @@ if __name__ == "__main__":
 
     #e(['test', '-v'])
     #e(['test', '-v', 'simp'])
+    e(['init'])
 
 
 
