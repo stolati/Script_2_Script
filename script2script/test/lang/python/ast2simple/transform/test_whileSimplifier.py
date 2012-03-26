@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import unittest, types, mock
+import unittest, types
 import sys
+from script2script.test import mock
 
 from methodVisitUtil import MethodVisitUtil, callOnBoth, AstTransformerTestClass
 from script2script.lang.python.ast2simple.transform.whileSimplifier import WhileSimplifier, HaveBreak
