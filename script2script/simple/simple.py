@@ -46,7 +46,8 @@ class TryCatchFinally(AST): _fields = ['body', 'errName', 'catch', 'final']
 
 
 
-def dump(node): return str(SimpleDump(node))
+
+def dumpSimple(node): return str(SimpleDump(node))
 
 class SimpleDump:
     def __init__(self, content):
@@ -92,6 +93,39 @@ class SimpleDump:
     def str_Break(self, e): return '%Break%'
     def str_Raise(self, e): return '%Raise% ???'
     def str_Continue(self, e): return '%Continue%'
+
+
+
+def dumpJson(node): return JsonDump([node]).get()
+
+
+class JsonDump:
+
+  def __init__(self, node):
+    self.content = node
+
+  def get(self): return self.visit(self.content)
+
+  def visit(self, node):
+    if not isinstance(node, AST):
+      return self._specific_visit(node)
+    return self.generic_visit(node)
+
+  def _specific_visit(self, node):
+    if node is None: return 'None'
+    if isinstance(node, str): return node
+    if isinstance(node, int): return node
+    if hasattr(node, '__iter__'):
+      return [self.visit(n) for n in node]
+    raise Exception('node type not known %s for element %s' % (node.__class__, node))
+
+  def generic_visit(self, node):
+    assert isinstance(node, AST)
+    res = {}
+    for f in node._fields:
+      res[f] = self.visit(getattr(node, f))
+    res['__class__'] = node.__class__.__name__
+    return res
 
 
 

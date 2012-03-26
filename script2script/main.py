@@ -15,7 +15,7 @@ from script2script.lang.python.ast2simple.transform.simplifying import Simplifyi
 
 from script2script.lang.python.ast2simple.ast2simple import PythonAst2Simple
 
-from script2script.simple.simple import dump as dumpSimple
+from script2script.simple.simple import dumpSimple, dumpJson
 
 
 #True, False and None are variables
@@ -41,6 +41,7 @@ if __name__ == "__main__":
   content.visitWith(PythonAst2Simple())
   simpleAst = content._content
   print dumpSimple(simpleAst)
+  print dumpJson(simpleAst)
 
 #__EOF__
 
