@@ -47,35 +47,38 @@ case "$command" in
       typeset git_path="$1" dir_name="$2"
       if [[ ! -d "$refs/$dir_name" ]]; then
         echo "Cloning $dir_name"
-        git clone "$git_path" "$refs/$dir_name" || true
+        git clone "$git_path" "$dir_name" || true
         return
       fi
 
-      echo "Pulling $dir_name"
+      echo "Pulling $(basename $dir_name)"
       (
-        cd "$refs/$dir_name"
+        cd "$dir_name"
         git pull || true
       )
     }
+
     mercurial_pull(){ #<mercurial_path> <dir_name>
       typeset merc_path="$1" dir_name="$2"
-      [[ ! -d "$refs/$dir_name" ]] || hg clone "$merc_path" "$refs/$dir_name"
+      [[ ! -d "$dir_name" ]] || hg clone "$merc_path" "$$dir_name"
       echo "Pulling $dir_name"
       (
-        cd "$refs/$dir_name"
+        cd "$dir_name"
         #TODO search for update mercurial stuffs, I don't know how to do
         #hg update --insecure
       )
     }
 
-    echo "Pulling script2script from github"
-    ( cd "$script2script_path" ; git pull ; )
+    #echo "Pulling script2script from github"
+    #( cd "$script2script_path" ; git pull ; )
 
-    git_pull git://pyjs.org/git/pyjamas.git Pyjamas
-    git_pull http://git.nuitka.net/Nuitka.git Nuitka
-    git_pull git://gitorious.org/shedskin/mainline.git Shedskin
-    mercurial_pull https://bitbucket.org/pypy/pypy Pypy
-    mercurial_pull https://mock.googlecode.com/hg mock
+    git_pull '' "$script2script_path"
+    git_pull git://pyjs.org/git/pyjamas.git "$refs/Pyjamas"
+    git_pull http://git.nuitka.net/Nuitka.git "$refs/Nuitka"
+    git_pull git://gitorious.org/shedskin/mainline.git "$refs/Shedskin"
+    git_pull git@github.com:stolati/Script_2_Script.wiki.git "$script2script_path/wiki"
+    mercurial_pull https://bitbucket.org/pypy/pypy "$refs/Pypy"
+    mercurial_pull https://mock.googlecode.com/hg "$refs/mock"
 
     ( cd "$refs/Pyjamas" ; python bootstrap.py ; )
 
