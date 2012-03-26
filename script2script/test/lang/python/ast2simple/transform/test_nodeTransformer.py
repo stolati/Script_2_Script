@@ -87,26 +87,49 @@ class TestNode2Json(unittest.TestCase):
 
   def test_copy(self):
     oriNodes = ast.If(
-        ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None),
-        [
-          ast.Print(None, ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None), False),
-        ],
-        [],
+      ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None),
+      [
+        ast.Print(None, ast.Call(ast.Name('toto', ast.Load()), [ast.List([], ast.Load())], [], None, None), False),
+      ],
+      [],
     )
+
     jsonOriNodes = {
-      'body': [{'dest': 'None',
-                 'nl': 'False',
-                 'values': {'args': [{'ctx': {}, 'elts': []}],
-                            'func': {'ctx': {}, 'id': 'toto'},
-                            'keywords': [],
-                            'kwargs': 'None',
-                            'starargs': 'None'}}],
-       'orelse': [],
-       'test': {'args': [{'ctx': {}, 'elts': []}],
-                'func': {'ctx': {}, 'id': 'toto'},
-                'keywords': [],
-                'kwargs': 'None',
-                'starargs': 'None'}
+      'test': {
+        'starargs': 'None',
+        'args': [{
+          'elts': [],
+          'ctx': {'__class__': 'Load'},
+          '__class__': 'List'
+        }],
+        '__class__': 'Call',
+        'func': {'ctx': {'__class__': 'Load'}, '__class__': 'Name', 'id': 'toto'},
+        'kwargs': 'None',
+        'keywords': []
+      },
+      'body': [{
+        'dest': 'None',
+        'nl': 'False',
+        'values': {
+          'starargs': 'None',
+          'args': [{
+            'elts': [],
+            'ctx': {'__class__': 'Load'},
+            '__class__': 'List'
+          }],
+          '__class__': 'Call',
+          'func': {
+            'ctx': {'__class__': 'Load'},
+            '__class__': 'Name',
+            'id': 'toto'
+          },
+          'kwargs': 'None',
+          'keywords': []
+        },
+        '__class__': 'Print'
+      }],
+      '__class__': 'If',
+      'orelse': []
     }
 
     jsonNodes = node2json(oriNodes)

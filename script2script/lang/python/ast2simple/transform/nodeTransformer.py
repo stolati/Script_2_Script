@@ -108,16 +108,17 @@ class Node2Json:
 
   def generic_visit(self, node):
     assert isinstance(node, ast.AST)
+    res = { '__class__':node.__class__.__name__ }
+
     #special case for Raise which has not so many elements it say
     if isinstance(node, ast.Raise):
-      res = {}
       for f in node._fields:
         try:
           res[f] = self.visit(getattr(node, f))
         except AttributeError: pass
+      res['__class__'] = node.__class__.__name__
       return res
 
-    res = {}
     for f in node._fields:
       res[f] = self.visit(getattr(node, f))
     return res
