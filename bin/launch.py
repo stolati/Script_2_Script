@@ -5,6 +5,7 @@ from glob import glob
 import re
 import unittest
 import subprocess
+import traceback
 
 
 def config(base_path):
@@ -153,9 +154,12 @@ class Execute(object):
     """%(basename)s tests [-a|--all] [-i|--interactive] [-y|--auto] [<num> ...] #launch main with a list of test file, or all test files, default the first one"""
 
     opts, args = getopt(params, "aiy", ["all", "interactive", "auto"])
-    getAll, interactive = False, True
+    getAll = False
     for opt, arg in opts:
       if opt in ('-a', '--all'): getAll = True
+
+    interactive =  len(args) > 1 or getAll
+    for opt, arg in opts:
       if opt in ('-i', '--interactive'): interactive = True
       if opt in ('-y', '--auto'): interactive = False
     if not args : args = ['0']
@@ -177,7 +181,8 @@ class Execute(object):
       try:
         main_module.processFile(f)
       except Exception as e:
-        print e
+        traceback.print_exc(file=sys.stdout)
+
       if interactive: raw_input()
 
 
@@ -231,7 +236,7 @@ if __name__ == "__main__":
     if base_path not in sys.path: sys.path.append(base_path)
 
     e = Execute(config)
-    #e(sys.argv[1:])
+    e(sys.argv[1:])
     #e(['toto'])
     #e(['help'])
     #e(['list'])
@@ -243,7 +248,7 @@ if __name__ == "__main__":
 
     #e(['test', '-v'])
     #e(['test', '-v', 'simp'])
-    e(['init'])
+    #e(['init'])
 
 
 
