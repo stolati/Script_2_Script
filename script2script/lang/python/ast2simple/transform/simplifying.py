@@ -223,11 +223,22 @@ class Simplifying(NodeTransformerAddedStmt):
 
 
   def visit_Compare(self, node):
-    #to remove recursive problems
-    #if isinstance(node.left, Name) \
-    #    and len(node.comparators) == 1 \
-    #    and isinstance(node.comparators[0], Name):
-    #  return self.generic_visit(node)
+    #to remove recursive problems, and optimise simple stuffs
+    if isinstance(node.left, Name) \
+        and len(node.comparators) == 1 \
+        and isinstance(node.comparators[0], Name):
+
+      leftVar = self.genVar('leftOp')
+      self.statementToAdd( leftVar.assign( self.visit(node.left) ) )
+
+      rightVar = self.genVar('rightOp')
+      self.statementToAdd( rightVar.assign( self.visit(node.comparators[0]) ) )
+
+      resVar = self.genVar('res')
+      self.statementToAdd( resVar.assign(Compare(leftVar.load(), [node.ops[0]], [rightVar.load()])))
+
+      return resVar.load()
+
 
     #TODO the if test on res is done each times, optimise that
 

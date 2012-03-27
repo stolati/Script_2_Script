@@ -4,7 +4,6 @@ from script2script.simple import *
 def simple2javascript(simpleAst):
   return str(Simple2Javascript(simpleAst))
 
-
 #class Module(AST): _fields = ['body'] #the body is always an ExprList
 #class ExprList(AST): _fields = ['exprs']
 #class Variable(AST): _fields = ['name']
@@ -29,8 +28,38 @@ def simple2javascript(simpleAst):
 
 class Simple2Javascript(object):
   basic_library = """
-Print = function(e){ print(e); }
+//basic_lib_begin
+True = true;
+False = false;
+Print = function(e){ print(e); };
+BinaryOp = function(left, op, right){
+  switch(op){
+    case "+": return left+right ; break;
+    case "-": return left-right ; break;
+    case "*": return left*right ; break;
+    case "/": return left/right ; break;
+  }
+  throw new Object("assertion false");
+};
+Compare = function(left, right, op){
+  switch(op){
+    case ">": return left > right ; break;
+    case "<": return left < right ; break;
+    case ">=": return left >= right ; break;
+    case "<=": return left <= right ; break;
+    case "=": return left == right ; break;
+    case "!=": return left != right ; break;
+  }
+  throw new Object("assertion false");
+};
+UnaryOp = function(op, cmd){
+  switch(op){
+    case "Not": return (! cmd) ; break;
+  }
+  throw new Object("assertion false");
+};
 
+//basic_lib_end
   """
 
   def __init__(self, content):
@@ -51,6 +80,7 @@ Print = function(e){ print(e); }
   def classNotFound(self, e):
     if hasattr(e, '_fields'): return '%s%s' % (e, repr(e._fields))
     if hasattr(e, '__iter__'): return '%s(is a list)' % (e)
+    if e is None: return ""
     return str(e)
 
   def __call__(self, e): return self.ast2str(e) #for one time change
@@ -82,6 +112,26 @@ Print = function(e){ print(e); }
     replace = [('"', '\\"'), ("\n", "\\n"), ("\t", "\\t")]
     for a, b in replace : res = res.replace(a, b)
     return '"%s"' % res
+
+  def str_Assign(self, e):
+    return '%s = %s' % ( self(e.target), self(e.value) )
+
+  def str_Num(self, e): return str(e.n)
+
+  def str_IfElse(self, e):
+    test = self(e.test)
+    body = self.indentStr(self(e.body))
+    hasElse = len(e.orelse.exprs) != 0
+    if hasElse:
+      orelse = self.indentStr(self(e.orelse))
+      return "if(%s){\n%s\n} else {\n%s\n}\n" % (test, body, orelse)
+    else:
+      return "if(%s){\n%s\n}\n" % (test, body)
+
+  def str_While(self, e):
+    test = self(e.test)
+    body = self.indentStr(self(e.body))
+    return "while(%s){\n%s\n}\n" % (test, body)
 
 
 #
@@ -121,10 +171,6 @@ Print = function(e){ print(e); }
 
 #    def str_Return(self, e): return 'return %s' % self(e.value)
 #    def str_Attribute(self, e): return '%s.%s' % (self(e.value), e.attr)
-#    def str_Assign(self, e):
-#        if isinstance(e.targets, ast.Tuple) or isinstance(e.targets, ast.List):
-#            return '%s = %s' % (self(e.targets), self(e.value))
-#        return '%s = %s' % ( ' = '.join(self(e) for e in e.targets), self(e.value))
 #    def str_Import(self, e):
 #        return '\n'.join('import %s' % self(e) for e in e.names)
 #    def str_alias(self, e):
@@ -140,25 +186,6 @@ Print = function(e){ print(e); }
 #        #return print_simple(e) #don't work, why that ? I don't know
 #        #TODO test the raise stuff, and print a more complex one
 #        return 'Raise ???'
-#
-#    def str_If(self, e):
-#        res = ['if %s:' % self(e.test)]
-#        res += self.bodyIndent(e.body)
-#        orelse = self.bodyIndent(e.orelse)
-#        res += orelse and ['else:'] + orelse or []
-#        return '\n'.join(res)
-#    def str_While(self, e):
-#        res = ['while %s:' % self(e.test)]
-#        res += self.bodyIndent(e.body)
-#        orelse = self.bodyIndent(e.orelse)
-#        res += orelse and ['else:'] + orelse or []
-#        return '\n'.join(res)
-#    def str_For(self, e):
-#        res = ['for %s in %s:' % (self(e.target), self(e.iter))]
-#        res += self.bodyIndent(e.body)
-#        orelse = self.bodyIndent(e.orelse)
-#        res += orelse and ['else:'] + orelse or []
-#        return '\n'.join(res)
 #
 #    def str_TryFinally(self, e):
 #        res = ['try:']
@@ -191,15 +218,6 @@ Print = function(e){ print(e); }
 #    def str_Global(self, e):
 #        return 'global ' + ', '.join(self(e) for e in e.names)
 #
-#    def str_Print(self, e):
-#        dest = e.dest and self(e.dest) +', ' or ''
-#        values = ', '.join(self(e) for e in e.values)
-#        nl = (not e.nl) and ',' or ''
-#        return 'print %s' % dest+ values +nl
-#
-#
-#
-#
 #    #slices and index
 #    def str_Subscript(self, e): return self(e.value) + '['+ self(e.slice) + ']'
 #    def str_Index(self, e): return self(e.value)
@@ -208,7 +226,6 @@ Print = function(e){ print(e); }
 #        return self(e.lower)+':'+self(e.upper) + step
 #
 #    #base types
-#    def str_Num(self, e): return str(e.n)
 #    def str_List(self, e): return '[%s,]' % ', '.join(self(e) for e in e.elts)
 #    def str_Tuple(self, e): return '(%s,)' % ', '.join(self(e) for e in e.elts)
 #    def str_Dict(self, e): return '{%s}' %    ', '.join(self(e1) + ':' + self(e2) for e1, e2 in zip(e.keys, e.values))
