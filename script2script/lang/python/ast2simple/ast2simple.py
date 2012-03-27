@@ -35,6 +35,16 @@ class PythonAst2Simple(object): #it's its own transformer
 
   def visit_Pass(self, node): return ExprList([])
 
+  def visit_Print(self, node):
+    #TODO visit_Print to call and import stuffs
+    assert node.dest == None
+    assert len(node.values) == 1
+    assert node.nl == True
+
+    val = self.visit(node.values[0])
+
+    return Call(Name('Print'), [val])
+
 
   def visit_While(self, node):
       assert not node.orelse

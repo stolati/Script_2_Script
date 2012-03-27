@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import ast
-import astPrint
-import os, os.path
+import ast, astPrint, os.path
 
 from transform.containerEmulate import ContainerEmulate
 from transform.forIntoWhile import ForIntoWhile
