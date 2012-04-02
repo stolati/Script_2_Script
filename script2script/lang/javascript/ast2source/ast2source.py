@@ -1,13 +1,11 @@
 
-from script2script.simple import *
+from script2script.simple.simple import *
 
 def simple2javascript(simpleAst):
   return str(Simple2Javascript(simpleAst))
 
 #class Module(AST): _fields = ['body'] #the body is always an ExprList
 #class ExprList(AST): _fields = ['exprs']
-#class Variable(AST): _fields = ['name']
-#class Assign(AST): _fields = ['target', 'value']
 #class Class(AST): _fields = ['body']
 #class Function(AST): _fields = ['params', 'body']
 #class Params(AST): _fields = ['names']
@@ -137,7 +135,7 @@ UnaryOp = function(op, cmd){
     return e.name
 
   def str_Function(self, e):
-    res = 'function(%s){\n%s\n}\n' % (self(e.params), self.indentStr(self(e.body)) )
+    res = 'function(%s){\n%s\n}' % (self(e.params), self.indentStr(self(e.body)) )
     return res
 
   def str_Params(self, e):
@@ -145,6 +143,77 @@ UnaryOp = function(op, cmd){
 
   def str_Return(self, e):
     return 'return %s' % self(e.value)
+
+  def str_Class(self, e): #TODO modify before calling this one, a transformer special for that
+    def removeSelf(f): #get a Function, and remove the self (adding first self = this)
+      assert isinstance(f, Function)
+      assert f.params.names[0].id == 'self', 'is %s instead of self' % f.params.names[0]
+
+      param_names = f.params.names[1:]
+      body_expr = [Assign(Variable('self'), Name('this'))] + f.body.exprs
+      return Function(Params(param_names), ExprList(body_expr))
+
+    init = None
+    #searching for the __init__ function
+    functions = {}
+    for a in e.body.exprs: #should be assign = Function
+      assert isinstance(a, Assign)
+      assert isinstance(a.target, Variable)
+      assert isinstance(a.value, Function)
+
+      if a.target.name == '__init__':
+        init = a.value
+      else:
+        functions[a.target.name] = a.value
+
+    if init is None:
+      init = Function(Params([Name('self')]), ExprList([]))
+
+    #remove self from the __init__ stuff
+    init.params.names.pop(0)
+
+    params = self(init.params)
+
+    body = []
+
+    #init of the object
+    body.append('self = new Object();')
+
+    body.append( self(init.body) ) #add the __init__ content
+
+    for k, v in functions.iteritems():
+      f = removeSelf(v)
+      body.append( 'self.%s = %s;' % (k, self(f)) )
+
+
+    body.append('return self;')
+
+    return 'function(%s){\n%s\n}' % (params, self.indentStr('\n'.join(body)))
+
+
+  def str_Attribute(self, e):
+    return '%s.%s' % (self(e.value), self(e.attr))
+
+
+    #function( init.params ){
+    #    self = new Object();
+
+    #    self.toto = function(){
+    #      self = this
+    #    }
+    #}
+
+
+
+
+
+
+
+
+  #  #create a initiasizer from __init__
+  #  #function( init.args )
+
+  #  #e is each function
 
 
 
