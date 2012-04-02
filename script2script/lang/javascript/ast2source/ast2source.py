@@ -95,7 +95,7 @@ UnaryOp = function(op, cmd){
     comment = 20 * '//' + '\n'
     moduleHeader = '\n%s// Module\n%s\n' % (comment, comment)
     bodyStr = self(e.body) # ''.join([self(e)+'\n' for e in e.body])
-    return moduleHeader + '\n{\n%s\n}\n' % bodyStr
+    return moduleHeader + '\n{\n%s\n}\n' % self.indentStr(bodyStr)
 
   def str_ExprList(self, e):
     return ''.join(self(n) + ';\n' for n in e.exprs)
@@ -133,24 +133,25 @@ UnaryOp = function(op, cmd){
     body = self.indentStr(self(e.body))
     return "while(%s){\n%s\n}\n" % (test, body)
 
+  def str_Variable(self, e):
+    return e.name
 
-#
-#    def str_Module(self, e):
-#        comment = 20 * '#' + '\n'
-#        moduleHeader = '%s# Module\n%s\n' % (comment, comment)
-#        bodyStr = ''.join([self(e)+'\n' for e in e.body])
-#        return moduleHeader + bodyStr
-#
+  def str_Function(self, e):
+    res = 'function(%s){\n%s\n}\n' % (self(e.params), self.indentStr(self(e.body)) )
+    return res
+
+  def str_Params(self, e):
+    return ', '.join(self(n) for n in e.names)
+
+  def str_Return(self, e):
+    return 'return %s' % self(e.value)
+
+
+
 #    def str_ClassDef(self, e):
 #        res = [self(d) for d in e.decorator_list]
 #        bases = ', '.join([self(b) for b in e.bases])
 #        res.append('class %s%s:' %(e.name, bases and '(%s)' % bases))
-#        res += self.bodyIndent(e.body)
-#        return '\n'.join(res)
-#
-#    def str_FunctionDef(self, e):
-#        res = [self(e) for e in e.decorator_list]
-#        res.append('def %s%s:' % (e.name, self(e.args)))
 #        res += self.bodyIndent(e.body)
 #        return '\n'.join(res)
 #
