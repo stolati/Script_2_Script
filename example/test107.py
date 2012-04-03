@@ -11,15 +11,20 @@ class Toto:
     self.tutu = tutu
     return self
 
+  def tata(self):
+    return self.tutu
+
   def toto(self, tralala):
     print self.tutu + tralala
 
 
 a = Toto()
-a.titi(4)
-a.toto(5)
+a.titi(40)
 
-Toto().toto(10)
+b = Toto()
+print b.tata()
+
+#Toto().toto(10)
 #Toto().titi(100).toto(10)
 
 

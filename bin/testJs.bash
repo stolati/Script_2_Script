@@ -19,7 +19,7 @@ place_from_end=$(expr "$(echo "$launch_res" | wc -l | xargs)" - $place_from_begi
 code_Js="$(echo "$launch_res" | tail -n -$place_from_end)"
 
 
-tmpFile="/tmp/$RANDOM.testJs"
+tmpFile="/tmp/$RANDOM.testJs.js"
 echo "$code_Js" > $tmpFile
 
 

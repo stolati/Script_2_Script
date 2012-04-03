@@ -56,7 +56,13 @@ UnaryOp = function(op, cmd){
   }
   throw new Object("assertion false");
 };
-
+GetAttr = function(ob, name){
+  if(typeof ob[name] === 'function'){
+    return function(){ return ob[name].apply(ob, arguments) ;}
+  } else {
+    return ob[name];
+  }
+};
 //basic_lib_end
   """
 
@@ -112,6 +118,10 @@ UnaryOp = function(op, cmd){
     return '"%s"' % res
 
   def str_Assign(self, e):
+    #test if the target is an Attribute
+    if isinstance(e.target, Attribute):
+       return '%s.%s = %s' % (self(e.target.value), self(e.target.attr), self(e.value))
+
     return '%s = %s' % ( self(e.target), self(e.value) )
 
   def str_Num(self, e): return str(e.n)
@@ -192,8 +202,7 @@ UnaryOp = function(op, cmd){
 
 
   def str_Attribute(self, e):
-    return '%s.%s' % (self(e.value), self(e.attr))
-
+    return 'GetAttr(%s, "%s")' % (self(e.value), self(e.attr))
 
     #function( init.params ){
     #    self = new Object();
