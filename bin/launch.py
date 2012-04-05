@@ -197,9 +197,7 @@ class Execute(object):
     tests = []
 
     if args:
-      print args
       for filt in args:
-        print 'pattern="test*%s*.py"' % filt
         tests.append(disco(self._config['test'], pattern='test*%s*.py' % filt))
     else:
       tests.append(disco(self._config['test'], pattern='test*.py'))

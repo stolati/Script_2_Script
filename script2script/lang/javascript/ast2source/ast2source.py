@@ -29,7 +29,20 @@ class Simple2Javascript(object):
 //basic_lib_begin
 True = true;
 False = false;
-Print = function(e){ print(e); };
+None = null;
+Print = function(e){ print(str(e)); };
+str = function(e){
+  if(e === None) return 'None';
+  if(typeof e === 'string') return "'" + e + "'";
+  if(typeof e === 'number') return ''+e;
+  if(hasattr(e, '__str__')) return getattr(e, '__str__')();
+  if(hasattr(e, '__repr__')) return getattr(e, '__repr__')();
+  print(typeof e);
+
+  return '';
+}
+min = function(m1, m2){ m1 > m2 ? m2 : m1 ; };
+max = function(m1, m2){ m1 > m2 ? m1 : m2 ; };
 BinaryOp = function(left, op, right){
   switch(op){
     case "+": return left+right ; break;
@@ -56,13 +69,61 @@ UnaryOp = function(op, cmd){
   }
   throw new Object("assertion false");
 };
-GetAttr = function(ob, name){
-  if(typeof ob[name] === 'function'){
+AttributeError = function(){};
+getattr = function(ob, name){
+  //TODO test for the __getattr__ stuff
+  if(typeof ob[name] === 'undefined')
+    throw new AttributeError();
+  if(typeof ob[name] === 'function')
     return function(){ return ob[name].apply(ob, arguments) ;}
-  } else {
-    return ob[name];
-  }
+  return ob[name];
 };
+hasattr = function(ob, name){
+  try{
+    getattr(ob, name)
+    return True;
+  } catch(error) {
+    if(error instanceof AttributeError){
+      return False;
+    }
+    throw error;
+  }
+}
+
+list = function(){
+  return [];
+}
+
+if(typeof Array.prototype.append !== 'function'){
+  Array.prototype.append = Array.prototype.push;
+}
+if(typeof Array.prototype.__str__ !== 'function'){
+  Array.prototype.__str__ = function(x){
+    myClone = [];
+    for(var i = 0; i < this.length; i++)
+      myClone[i] = str(this[i]);
+    return "[" + myClone.join(", ") + "]";
+  };
+}
+if(typeof Array.prototype.extend !== 'function'){
+  Array.prototype.extend = function(L){
+    for(var i = 0; i < L.length ; i++)
+      this.append(L[i]);
+    return None;
+  };
+}
+if(typeof Array.prototype.__getitem__ !== 'function'){
+  Array.prototype.__getitem__ = function(i){
+    return this[i];
+  };
+}
+if(typeof Array.prototype.__setitem__ !== 'function'){
+  Array.prototype.__setitem__ = function(i, x){
+    this[i] = x;
+  };
+}
+
+//delete list[1];
 //basic_lib_end
   """
 
@@ -202,28 +263,7 @@ GetAttr = function(ob, name){
 
 
   def str_Attribute(self, e):
-    return 'GetAttr(%s, "%s")' % (self(e.value), self(e.attr))
-
-    #function( init.params ){
-    #    self = new Object();
-
-    #    self.toto = function(){
-    #      self = this
-    #    }
-    #}
-
-
-
-
-
-
-
-
-  #  #create a initiasizer from __init__
-  #  #function( init.args )
-
-  #  #e is each function
-
+    return 'getattr(%s, "%s")' % (self(e.value), self(e.attr))
 
 
 #    def str_ClassDef(self, e):

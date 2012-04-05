@@ -41,8 +41,8 @@ class GeneratedVariable(object):
     if name == '': return ast.Name(self.name, ast.Load())
     return ast.Attribute(self.load(), name, ast.Load() )
 
-  def assign(self, val):
-    return ast.Assign([self.store()], val)
+  def assign(self, val, name=''):
+    return ast.Assign([self.store(name=name)], val)
 
   def __str__(self): return self.name
 
