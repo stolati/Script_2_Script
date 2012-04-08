@@ -5,6 +5,7 @@ from script2script.lang.python.ast2simple.transform.nodeTransformer import *
 
 
 
+
 class TestVariableGenerator(unittest.TestCase):
 
   def test_uniticy(self):
@@ -261,6 +262,58 @@ class TestNodeTransformerAddedStmt(unittest.TestCase):
       bases =  node2json(res)
       transformed = node2json(PrintDouble().visit(self.getNodeTest()))
       self.assertEqual(bases, transformed)
+
+
+class Testst2ast(unittest.TestCase):
+
+  def test_simple(self):
+    code = "a = b"
+    ast_code = node2json([ast.Assign([ast.Name('a', ast.Store())], ast.Name('b', ast.Load()))])
+
+    self.assertEquals( node2json(str2ast(code)) , ast_code )
+
+  def test_indentation(self):
+
+    code = """
+      a = b
+      if True:
+        return titi
+    """
+
+    ast_code = node2json([
+      ast.Assign([ast.Name('a', ast.Store())], ast.Name('b', ast.Load())),
+      ast.If( ast.Name('True', ast.Load()), [
+        ast.Return(ast.Name('titi', ast.Load())),
+      ], []),
+    ])
+
+    self.assertEquals( node2json(str2ast(code)) , ast_code )
+
+
+  def test_changeName(self):
+
+    code = """
+      a = b
+      if True:
+        return titi
+      class a: pass
+    """
+
+    d = {'a':'a_tutu', 'b':'b_toto', 'True':'False'}
+
+    ast_code = node2json([
+      ast.Assign([ast.Name('a_tutu', ast.Store())], ast.Name('b_toto', ast.Load())),
+      ast.If( ast.Name('False', ast.Load()), [
+        ast.Return(ast.Name('titi', ast.Load())),
+      ], []),
+      ast.ClassDef('a_tutu', [], [ast.Pass()], []),
+    ])
+
+    self.assertEquals( node2json(str2ast(code, **d)) , ast_code )
+
+
+
+#TODO do a test for ChangeName
 
 
 if __name__ == "__main__":

@@ -5,6 +5,11 @@ import ast
 import sys
 import nodeTransformer
 import os.path, os
+from nodeTransformer import str2ast
+
+
+#TODO for the future, add a list of import to include (for the __import__('name') def)
+#TODO for the future, add a list of import to not include (because they are in a if)
 
 #Imports variations :
 #   import X => ok, have a variable = module object
@@ -26,30 +31,83 @@ class MoreImport(nodeTransformer.NodeTransformer):
     self.path = path
 
   def visit(self, node):
-    res = NoMoreImport(self.path).visit(node)
+    res = NoMoreImport(self.path).visit_withAdd(node)
     print ast2str(res, 'pyAst_python')
     return res
 
 
 class NoMoreImport(nodeTransformer.NodeTransformerAddedStmt):
+  init_code = """
+  class DictModule(object):
+    def __init__(self):
+      self.content = {}
+    
+    def add(self, name, fct):
+      self.content[name] = (False, fct)
+
+    def getModule(self, name):
+      l, v = self.content[name]
+      if not l:
+        v = v()
+        self.content[name] = (True, v)
+      return v
+      
+  dictModule = DictModule()
+  __import__ = dictModule.getModule
+
+  class Module(object): pass
+  """
 
   def __init__(self, path):
     nodeTransformer.NodeTransformerAddedStmt.__init__(self)
 
-    self.resolver = SysPathFinder(path).getCodeFromName
+    self.resolver = SysPathFinder(path).getModuleFromName
     self.loadedModules = {}
 
+    self.dict_var = self.genVar('dict_import')
+    self.dict_imports = {}
+
+
+  def visit_withAdd(self, node):
+    res = self.visit(node)
+    toAdd = []
+
+    klassName = self.genVar('klass').name
+
+
+    toAdd = str2ast(self.init_code,
+        DictModule = self.genVar('klass').name,
+        dictModule = self.dict_var.name
+    )
+
+    for k, (vname, vast) in self.dict_imports.iteritems():
+      toAdd += vast + str2ast("dict_var.add('%s', fct)" % k,
+              dict_var = self.dict_var.name,
+              fct = vname
+      )
+
+    if isinstance(res, Module):
+      res.body = toAdd + res.body
+      return res
+
+    if isinstance(res, list):
+      return toAdd + res
+
+    assert False, "type of master ast unknown"
+
+
   def visit_Import(self, node):
+
     for alias in node.names:
       name = alias.name
       asname = alias.asname or name
 
-      fct = self.resolver(name)
-      fctName = fct.name
+
+      m = self.resolver(name)
+      self.dict_imports[name] = (m.getName(), m.getAst())
 
       return [
-          fct,
-          Assign([Name(asname, Store())], Call(Name(fctName, Load()), [], [], None, None)),
+          str2ast("asname = __import__('%s')" % name, asname = asname),
       ]
 
 
@@ -59,36 +117,53 @@ class SysPathFinder(object):
   def __init__(self, path=sys.path):
     self.path = sys.path
 
-  def getCodeFromName(self, name):
-    filePath = self.getFileFromName(name)
-    if filePath is None: return None
-
-    content = open(filePath).read()
-    contentAst = ast.parse(content, filePath, 'exec')
-    return CreateModule(filePath, name).visit(contentAst)
-
-
-  def getFileFromName(self, name):
+  def getModuleFromName(self, name):
     for dirPath in self.path:
-      for filePath in os.listdir(dirPath):
-        #TODO directory
+      if dirPath == '': dirPath = os.getcwd()
+      if not os.path.isdir(dirPath): continue #take only directory path
 
-        fname = os.path.basename(filePath)
-        root, ext = os.path.splitext(fname)
-        if ext not in ['.py']: continue
-        if root != name: continue
+      #TODO take care of zip files
 
-        #found it
-        return os.path.join(dirPath, filePath)
+      #test if it's have a directory module
+      iniFile = os.path.join(dirPath, name, '__init__.py')
+      if os.path.isfile(iniFile):
+        return CreateModuleFromFile(iniFile, name)
 
-    return None
+      #test if it's a file module
+      modFile = os.path.join(dirPath, name + '.py')
+      if os.path.isfile(modFile):
+        return CreateModuleFromFile(modFile, name)
+
+    return ErrorModule(name)
 
 
-class CreateModule(nodeTransformer.NodeTransformer):
+
+class ErrorModule(nodeTransformer.VariableGenerator):
+
+  def __init__(self, name):
+    self.name = name
+
+    self.fctName = self.genVar().name
+
+  def getAst(self):
+
+    code = """
+      def fctName():
+        raise ImportError("No module named %s")
+    """ % self.name
+
+    return str2ast(code, fctName = self.fctName)
+
+  def getName(self): return self.fctName
+
+
+
+
+
+class CreateModuleFromFile(nodeTransformer.NodeTransformer):
   """
-  Create a module object from a module ast
+  Create a module object from a module file
   """
-
 
 
   def __init__(self, filePath, moduleName):
@@ -100,12 +175,20 @@ class CreateModule(nodeTransformer.NodeTransformer):
     self.moduleVar = self.genVar('module')
 
 
+  def getAst(self):
+    with open(self.filePath) as f:
+      contentAst = ast.parse(f.read(), self.filePath, 'exec')
+    return [self.visit(contentAst)]
+
+  def getName(self):
+    return self.moduleFctVariable.name
+
+
   def visit_Module(self, node):
 
     args = arguments([], None, None, [])
 
-    init = [
-        ClassDef('Module', [], [Pass()], []),
+    init =  [
         self.moduleVar.assign( Call(Name('Module', Load()), [], [], None, None)  ),
     ]
 
@@ -113,29 +196,54 @@ class CreateModule(nodeTransformer.NodeTransformer):
         Return( self.moduleVar.load() ),
     ]
 
+    #add __name__ = and __file__ = in the module
+    node.body = [
+        Assign([Name('__name__', Store())], Str(self.moduleName)),
+        Assign([Name('__file__', Store())], Str(self.filePath)),
+
+    ] + node.body
+
     return FunctionDef(self.moduleFctVariable.name, args,
         init + self.visit(node.body) + res
     , [])
 
-  def _genAffect(self, node, name):
-    return [
-        node,
-        self.moduleVar.assign(name=name, val=Name(name, Load())),
-    ]
+  def _genAffect(self, name):
+    return [ self.moduleVar.assign(name=name, val=Name(name, Load())), ]
+
+
+  def getAllNames(self, node):
+    if isinstance(node, Name):
+      return [node.id]
+
+    if isinstance(node, List) or isinstance(node, Tuple):
+      res = []
+      for e in node.elts:
+        res += self.getAllNames(e)
+      return e
+
+    return []
+
 
   def visit_Assign(self, node):
-
     assert len(node.targets) == 1
     assert isinstance(node.targets[0], Name)
 
-    return self._genAffect(node, node.targets[0].id)
+    names = []
+    for t in node.targets:
+      names += self.getAllNames(t)
+
+    resAst = [node]
+    for name in names:
+      resAst += self._genAffect(name)
+
+    return resAst
 
 
   def visit_ClassDef(self, node):
-    return self._genAffect(node, node.name)
+    return [node] + self._genAffect(node.name)
 
   def visit_FunctionDef(self, node):
-    return self._genAffect(node, node.name)
+    return [node] + self._genAffect(node.name)
 
 
 #__EOF__

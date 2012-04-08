@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-import ast
+import ast, re
 
 
-__all__ = ['VariableGenerator', 'NodeVisitor', 'node2json', 'nodeCopy', 'iter_nodes', 'NodeTransformer', 'NodeTransformerAddedStmt']
+__all__ = ['str2ast', 'VariableGenerator', 'NodeVisitor', 'node2json', 'nodeCopy', 'iter_nodes', 'NodeTransformer', 'NodeTransformerAddedStmt']
+
+
+
 
 
 class VariableGenerator(object):
@@ -315,4 +318,64 @@ class NodeTransformerAddedStmt(NodeTransformer):
 
     return node
 
+
+
+#return the same code
+#but remove any previous indentation
+def cleanCode(s):
+  """
+  return a string of code
+  removing any previous indentation
+  """
+  sarr = s.split('\n')
+  while(len(sarr) > 0):
+    if sarr[0] != '': break
+    sarr.pop(0)
+
+  if len(sarr) == 0: return ''
+  header = re.compile('^\s*')
+  spaces = header.search(sarr[0]).group()
+
+  codearr = []
+  for l in sarr:
+    if l[:len(spaces)] == spaces:
+      l = l[len(spaces):]
+    codearr.append(l)
+
+  return '\n'.join(codearr)
+
+
+
+def str2ast(s, **kargs):
+  """
+  Transform a string of code into an ast tree
+  Can get kargs, they are elements to change in the code
+  It's the old variable name => new variable name
+  """
+  s = cleanCode(s)
+  #return the Module.body
+  module = ast.parse(s, '', 'exec')
+  if kargs: module = ChangeNames(kargs).visit(module)
+  return module.body
+
+
+class ChangeNames(NodeTransformer):
+  def __init__(self, namesDir):
+    self.namesDir = namesDir
+
+  def visit_Name(self, node):
+    node.id = self.namesDir.get(node.id, node.id)
+    return node
+
+  def visit_ClassDef(self, node):
+    node.name = self.namesDir.get(node.name, node.name)
+    return self.generic_visit(node)
+
+  def visit_FunctionDef(self, node):
+    node.name = self.namesDir.get(node.name, node.name)
+    return self.generic_visit(node)
+
+
 #__EOF__
+
+
