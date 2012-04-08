@@ -10,7 +10,6 @@ def Complex_Klass(object): pass
 
 c = Complex_Klass
 
-
 toto = 'I have a var'
 
 #__EOF__

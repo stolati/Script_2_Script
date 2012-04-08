@@ -36,8 +36,10 @@ class MoreImport(nodeTransformer.NodeTransformer):
     return res
 
 
-class NoMoreImport(nodeTransformer.NodeTransformerAddedStmt):
+class NoMoreImport(nodeTransformer.NodeTransformer):
   init_code = """
+  class Module(object): pass
+
   class DictModule(object):
     def __init__(self):
       self.content = {}
@@ -54,37 +56,44 @@ class NoMoreImport(nodeTransformer.NodeTransformerAddedStmt):
       
   dictModule = DictModule()
   __import__ = dictModule.getModule
-
-  class Module(object): pass
   """
 
   def __init__(self, path):
-    nodeTransformer.NodeTransformerAddedStmt.__init__(self)
+    nodeTransformer.NodeTransformer.__init__(self)
 
     self.resolver = SysPathFinder(path).getModuleFromName
-    self.loadedModules = {}
+    self.resolver_near = SysPathFinder(path, ['']).getModuleFromName
 
-    self.dict_var = self.genVar('dict_import')
     self.dict_imports = {}
+    self.dict_imports_near = {} #the imports of files just at the same place that __file__
 
 
   def visit_withAdd(self, node):
     res = self.visit(node)
     toAdd = []
 
-    klassName = self.genVar('klass').name
+    dict_var = self.genVar('dict_import').name
 
+    klassName = self.genVar('klass').name
 
     toAdd = str2ast(self.init_code,
         DictModule = self.genVar('klass').name,
-        dictModule = self.dict_var.name
+        dictModule = dict_var
     )
+
 
     for k, (vname, vast) in self.dict_imports.iteritems():
       toAdd += vast + str2ast("dict_var.add('%s', fct)" % k,
-              dict_var = self.dict_var.name,
+              dict_var = dict_var,
               fct = vname
       )
+
+    for k, (vname, vast) in self.dict_imports_near.iteritems():
+      toAdd += vast + str2ast("dict_var.add('%s', fct)" % k,
+              dict_var = dict_var,
+              fct = vname
+      )
+
 
     if isinstance(res, Module):
       res.body = toAdd + res.body
@@ -102,9 +111,19 @@ class NoMoreImport(nodeTransformer.NodeTransformerAddedStmt):
       name = alias.name
       asname = alias.asname or name
 
+      #test if the name is componsed
+      #if '.' in name:
+      #  curName = name.split('.')[0]
+      #  leftName = name.split('.')[1:]
 
-      m = self.resolver(name)
-      self.dict_imports[name] = (m.getName(), m.getAst())
+
+      if name not in self.dict_imports_near and \
+            name not in self.dict_imports:
+
+        m = self.resolver_near(name)
+        if isinstance(m, ErrorModule):
+          m = self.resolver(name)
+        self.dict_imports[name] = (m.getName(), m.getAst())
 
       return [
           str2ast("asname = __import__('%s')" % name, asname = asname),
@@ -114,25 +133,38 @@ class NoMoreImport(nodeTransformer.NodeTransformerAddedStmt):
 
 class SysPathFinder(object):
 
-  def __init__(self, path=sys.path):
+  def __init__(self, path=sys.path, cur_path=os.getcwd()):
     self.path = sys.path
+    self.cur_path = cur_path
+
+  def haveDirModule(self, name, dirPath):
+    #test if it's have a directory module
+    iniFile = os.path.join(dirPath, name, '__init__.py')
+    if os.path.isfile(iniFile):
+      return CreateModuleFromFile(iniFile, name)
+    return None
+
+  def haveFileModule(self, name, dirPath):
+    #test if it's a file module
+    modFile = os.path.join(dirPath, name + '.py')
+    if os.path.isfile(modFile):
+      return CreateModuleFromFile(modFile, name)
+    return None
+
+
+  def getNameFromDir(self, name, dirPath):
+    if dirPath == '': dirPath = self.cur_path
+    if not os.path.isdir(dirPath): return None
+
+    #TODO take care of zip files
+    return self.haveDirModule(name, dirPath) or \
+          self.haveFileModule(name, dirPath)
+
 
   def getModuleFromName(self, name):
     for dirPath in self.path:
-      if dirPath == '': dirPath = os.getcwd()
-      if not os.path.isdir(dirPath): continue #take only directory path
-
-      #TODO take care of zip files
-
-      #test if it's have a directory module
-      iniFile = os.path.join(dirPath, name, '__init__.py')
-      if os.path.isfile(iniFile):
-        return CreateModuleFromFile(iniFile, name)
-
-      #test if it's a file module
-      modFile = os.path.join(dirPath, name + '.py')
-      if os.path.isfile(modFile):
-        return CreateModuleFromFile(modFile, name)
+      m = self.getNameFromDir(name, dirPath)
+      if m is not None: return m
 
     return ErrorModule(name)
 
