@@ -349,6 +349,13 @@ class SimpleFileResolver(object):
     Calcul the path from a file system
     @return None or the complete path found
     """
+    curPath = path.split('.')
+    #test that the curPath exists
+
+    #go to the right stuff
+    #then go to the 
+
+
     return None
 
 
