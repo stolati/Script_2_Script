@@ -329,14 +329,6 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 
 
 
-
-
-#class Resolver
-
-
-
-
-
 class SimpleFileResolver(object):
 
   def __init__(self, pythonModule):
@@ -365,85 +357,38 @@ class SimpleFileResolver(object):
     except NoModuleFound:
       pass
 
-    #def getFromPath(self, nameList):
-    #  return reduce(lambda e, n: e[n] , nameList, self)
+    return None
 
 
-  #def setFrom(self, fromPath):
-  #  #because we always take the path from up one element
-  #  self.fromPath = fromPath[:-1]
-  #  return self
+#class SuperFileResolver(SimpleFileResolver):
+#
+#  def __init__(self, pythonModules):
+#    self.pms = pythonModules
+#
+#  def find(self, fromStr, toStr):
+#    res = self.getRelModule(fromStr.split('.'), toStr.split('.'))
+#    return res.getContent() if res is not None else None
+#
+#  def getRelModule(self, fromPath, toPath):
+#    #the first element of fromPath is the id of pms 
+#    if len(fromPath) > 1:
+#      fromModule = self.pms[fromPath.pop(0)]
+#
+#      try:
+#        return fromModule.getRelPath(fromPath, toPath)
+#      except NoModuleFound:
+#        pass
+#
+#    #test from the absolute path
+#    try:
+#      return self.pm.getAbsPath(toPath)
+#    except NoModuleFound:
+#      pass
+#
+#    return None
 
 
-  #def get(self, goalPath):
-  #  """
-  #  Calcul the path from a file system
-  #  @return None or the complete path found
-  #  """
 
-  #  #path can only be one of both
-  #  validPath = []
-  #  if self.fromPath : validPath.append(self.fromPath + goalPath)
-  #  validPath.append( goalPath )
-
-  #  for path in validPath:
-  #    res = self._callPythonPath(path)
-  #    if res != None:
-  #      return res
-
-  #  return None
-
-
-  #def _callPythonPath(self, path):
-  #  """
-  #  Return the file object from path
-  #  If the path is not valid, return None
-  #  """
-
-  #  result = []
-  #  curFile = self.fs
-
-  #  for name in path[:-1]: #all but last
-  #    try:
-  #      curFile = curFile['%s/' % name]
-  #      curFile['__init__.py']
-  #    except KeyError:
-  #      return None
-  #    result.append('%s/' % name)
-
-  #  name = path[-1]
-  #  #for the last element, could be a single file module
-
-  #  try : #test for a directory module first
-  #    curDirFile = curFile['%s/' % name]
-  #    curDirFile['__init__.py']
-  #  except KeyError:
-  #    pass
-  #  else:
-  #    return result + ['%s/' % name , '__init__.py']
-
-  #  #test for a single file module
-  #  try:
-  #    curFileFile = curFile['%s.py' % name]
-  #  except KeyError:
-  #    pass
-  #  else:
-  #    return result + ['%s.py' % name]
-
-  #  return None
-
-
-  #def _path2file(self, path):
-  #  """from a path, return the file object"""
-  #  curFO = self.fs
-  #  for e in path:
-  #    curFO = curFO[e]
-  #  return curFO
-
-
-  ##path of a module change
-  ## if __init__.py it's the directory name (as path)
-  ## if XXXX.py it's the name without .py
 
 
 
@@ -483,6 +428,10 @@ class PythonModule(object):
   def getAbsPath(self, nameList):
     return reduce(lambda e, n: e[n] , nameList, self)
 
+  def getPath(self):
+    if self._up is None: return []
+    return self._up.getPath() + [self._name]
+
   def __str__(self):
     return '%s.%s' % (str(self._up), self._name)
 
@@ -499,6 +448,45 @@ class PythonModule(object):
     - The second element is a dict of the childs {name : repr()}
     """
     return repr(self._forRepr())
+
+
+
+class PythonModuleList(PythonModule):
+  """
+  Represent a list of concrete modules
+  """
+
+  def __init__(self, name='', up=None):
+    PythonModule.__init__(self, name, up)
+    self._modules = [] #order is important
+
+  def getContent(self): return ''
+
+  def getChild(self, name):
+    try:
+      return self._modules[int(name)]
+    except IndexError:
+      return None #int not in the range
+    except ValueError:
+      return None #name not an int value
+
+  def getChilds(self): return self._modules
+
+  def getRelPath(self, nameListFrom, nameListTo):
+    pass
+    #moduleFrom = self.getAbsPath(nameListFrom)
+    #if moduleFrom._type == self.TYPE_FILE:
+    #  moduleFrom = moduleFrom.getUp()
+    #return moduleFrom.getAbsPath(nameListTo)
+
+  def addModule(self, fct):
+    """
+    fct should wait for parameters : name, up
+    """
+    i = len(self._modules)
+    self._modules[i] = fct(str(i), self)
+
+
 
 
 

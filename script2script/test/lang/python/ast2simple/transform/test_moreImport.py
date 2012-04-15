@@ -108,33 +108,6 @@ class TestSimpleFileResolver(unittest.TestCase):
 
 
 
-#    self.assertEquals(sfr._callPythonPath(['importTest_complex/']), None)
-#    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'toto']), ['importTest_complex/', 'toto.py'])
-#    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'titi']), None)
-#    self.assertEquals(sfr._callPythonPath(['importTest_simple']), ['importTest_simple.py'])
-#
-#  def test_getFileObjectFromPath(self):
-#
-#    sfr = SimpleFileResolver(self.paths)
-#
-#    self.assertEquals(sfr._path2file(['importTest_complex/', '__init__.py']), 'importTest_complex/__init__.py content')
-#    self.assertEquals(sfr._path2file(['importTest_complex/', 'toto.py']), 'importTest_complex/toto.py content')
-#    self.assertEquals(sfr._path2file(['importTest_simple.py']), 'importTest_simple.py content')
-#
-#
-#  def test_simpleResolve(self):
-#
-#    sfr = SimpleFileResolver(self.paths)
-#
-#    self.assertEquals(sfr.simpleFind('', 'importTest_simple'), ['importTest_simple.py'])
-#    self.assertEquals(sfr.simpleFind('', 'titi'), None)
-#    self.assertEquals(sfr.simpleFind('toto', 'titi'), None)
-#    self.assertEquals(sfr.simpleFind('importTest_simple', 'importTest_simple'), ['importTest_simple.py'])
-#
-#    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'titi'), None)
-#    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'toto'), ['importTest_complex/', 'toto.py'])
-
-
 #   import X => ok, have a variable = module object
 #   import X.Y => ok, have a variable = module object
 #   import X.Y as titi => ok, have a variable = module object
