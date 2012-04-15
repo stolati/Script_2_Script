@@ -333,37 +333,90 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 
 
 
-
-
 class SimpleFileResolver(object):
 
   def __init__(self, file_system):
     self.fs = file_system
 
+  def simpleFind(self, fromPath, strPath):
+    self.setFrom(fromPath.split('.'))
+    return self.get(strPath.split('.'))
+
   def setFrom(self, fromPath):
-    self.fromPath = fromPath
+    #because we always take the path from up one element
+    self.fromPath = fromPath[:-1]
     return self
 
-  def get(self, path):
+
+  def get(self, goalPath):
     """
     Calcul the path from a file system
     @return None or the complete path found
     """
-    curPath = path.split('.')
-    #test that the curPath exists
 
-    #go to the right stuff
-    #then go to the 
+    #path can only be one of both
+    validPath = []
+    if self.fromPath : validPath.append(self.fromPath + goalPath)
+    validPath.append( goalPath )
 
+    for path in validPath:
+      res = self._callPythonPath(path)
+      if res != None:
+        return res
 
     return None
 
 
+  def _callPythonPath(self, path):
+    """
+    Return the file object from path
+    If the path is not valid, return None
+    """
+
+    result = []
+    curFile = self.fs
+
+    for name in path[:-1]: #all but last
+      try:
+        curFile = curFile['%s/' % name]
+        curFile['__init__.py']
+      except KeyError:
+        return None
+      result.append('%s/' % name)
+
+    name = path[-1]
+    #for the last element, could be a single file module
+
+    try : #test for a directory module first
+      curDirFile = curFile['%s/' % name]
+      curDirFile['__init__.py']
+    except KeyError:
+      pass
+    else:
+      return result + ['%s/' % name , '__init__.py']
+
+    #test for a single file module
+    try:
+      curFileFile = curFile['%s.py' % name]
+    except KeyError:
+      pass
+    else:
+      return result + ['%s.py' % name]
+
+    return None
 
 
+  def _path2file(self, path):
+    """from a path, return the file object"""
+    curFO = self.fs
+    for e in path:
+      curFO = curFO[e]
+    return curFO
 
 
-
+  #path of a module change
+  # if __init__.py it's the directory name (as path)
+  # if XXXX.py it's the name without .py
 
 
 
