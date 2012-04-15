@@ -5,6 +5,7 @@ import ast, md5
 import sys
 import nodeTransformer
 import os.path, os
+import zipfile
 from nodeTransformer import str2ast
 
 
@@ -335,111 +336,123 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 
 
 
+
 class SimpleFileResolver(object):
 
-  def __init__(self, file_system):
-    self.fs = file_system
-
-  def simpleFind(self, fromPath, strPath):
-    self.setFrom(fromPath.split('.'))
-    return self.get(strPath.split('.'))
-
-  def setFrom(self, fromPath):
-    #because we always take the path from up one element
-    self.fromPath = fromPath[:-1]
-    return self
+  def __init__(self, pythonModule):
+    self.pm = pythonModule
 
 
-  def get(self, goalPath):
+  def find(self, fromStr, toStr):
     """
-    Calcul the path from a file system
-    @return None or the complete path found
+    helper function to get the content of the result
     """
+    res = self.getRelModule(fromStr.split('.'), toStr.split('.'))
+    return res.getContent() if res is not None else None
 
-    #path can only be one of both
-    validPath = []
-    if self.fromPath : validPath.append(self.fromPath + goalPath)
-    validPath.append( goalPath )
+  def getRelModule(self, fromPath, toPath):
 
-    for path in validPath:
-      res = self._callPythonPath(path)
-      if res != None:
-        return res
-
-    return None
-
-
-  def _callPythonPath(self, path):
-    """
-    Return the file object from path
-    If the path is not valid, return None
-    """
-
-    result = []
-    curFile = self.fs
-
-    for name in path[:-1]: #all but last
+    #test from the relative path
+    if fromPath:
       try:
-        curFile = curFile['%s/' % name]
-        curFile['__init__.py']
-      except KeyError:
-        return None
-      result.append('%s/' % name)
+        return self.pm.getRelPath(fromPath, toPath)
+      except NoModuleFound:
+        pass
 
-    name = path[-1]
-    #for the last element, could be a single file module
-
-    try : #test for a directory module first
-      curDirFile = curFile['%s/' % name]
-      curDirFile['__init__.py']
-    except KeyError:
-      pass
-    else:
-      return result + ['%s/' % name , '__init__.py']
-
-    #test for a single file module
+    #test from the absolute path
     try:
-      curFileFile = curFile['%s.py' % name]
-    except KeyError:
+      return self.pm.getAbsPath(toPath)
+    except NoModuleFound:
       pass
-    else:
-      return result + ['%s.py' % name]
 
-    return None
-
-
-  def _path2file(self, path):
-    """from a path, return the file object"""
-    curFO = self.fs
-    for e in path:
-      curFO = curFO[e]
-    return curFO
+    #def getFromPath(self, nameList):
+    #  return reduce(lambda e, n: e[n] , nameList, self)
 
 
-  #path of a module change
-  # if __init__.py it's the directory name (as path)
-  # if XXXX.py it's the name without .py
+  #def setFrom(self, fromPath):
+  #  #because we always take the path from up one element
+  #  self.fromPath = fromPath[:-1]
+  #  return self
+
+
+  #def get(self, goalPath):
+  #  """
+  #  Calcul the path from a file system
+  #  @return None or the complete path found
+  #  """
+
+  #  #path can only be one of both
+  #  validPath = []
+  #  if self.fromPath : validPath.append(self.fromPath + goalPath)
+  #  validPath.append( goalPath )
+
+  #  for path in validPath:
+  #    res = self._callPythonPath(path)
+  #    if res != None:
+  #      return res
+
+  #  return None
+
+
+  #def _callPythonPath(self, path):
+  #  """
+  #  Return the file object from path
+  #  If the path is not valid, return None
+  #  """
+
+  #  result = []
+  #  curFile = self.fs
+
+  #  for name in path[:-1]: #all but last
+  #    try:
+  #      curFile = curFile['%s/' % name]
+  #      curFile['__init__.py']
+  #    except KeyError:
+  #      return None
+  #    result.append('%s/' % name)
+
+  #  name = path[-1]
+  #  #for the last element, could be a single file module
+
+  #  try : #test for a directory module first
+  #    curDirFile = curFile['%s/' % name]
+  #    curDirFile['__init__.py']
+  #  except KeyError:
+  #    pass
+  #  else:
+  #    return result + ['%s/' % name , '__init__.py']
+
+  #  #test for a single file module
+  #  try:
+  #    curFileFile = curFile['%s.py' % name]
+  #  except KeyError:
+  #    pass
+  #  else:
+  #    return result + ['%s.py' % name]
+
+  #  return None
+
+
+  #def _path2file(self, path):
+  #  """from a path, return the file object"""
+  #  curFO = self.fs
+  #  for e in path:
+  #    curFO = curFO[e]
+  #  return curFO
+
+
+  ##path of a module change
+  ## if __init__.py it's the directory name (as path)
+  ## if XXXX.py it's the name without .py
 
 
 
 
 
-class FileSystemFile(object):
-  """
-  Replace a file system with a dictionary-like
-  It's like a dict of dict
 
-  - To get a file, just get dict.getFile(), then open it or whatever
-  - Directory are named with a '/' at the end
-  """
 
-  def __init__(self, path):
-    self.path = path
 
-  def __getitem__(self, name): raise KeyError("File don't have a file list")
-  def __contins__(self, name): return False
-  def __iter__(self, name): raise KeyError("File don't have a file list")
-  def __str__(self): return "'%s'" % os.path.basename(self.path)
+
 
 
 
@@ -457,6 +470,7 @@ class PythonModule(object):
   def getContent(self): raise NotImplemented
   def getChild(self, name): raise NotImplemented
   def getChilds(self): raise NotImplemented
+  def getRelPath(self, nameListFrom, nameListTo): raise NotImplemented
 
   def getName(self): return self._name
   def __hash__(self): return hash(self._name)
@@ -464,9 +478,9 @@ class PythonModule(object):
   def __getitem__(self, name): return self.getChild(name)
   def __iter__(self): return iter(self.getChilds())
 
-  def getUp(name): return self._up
+  def getUp(self): return self._up
 
-  def getFromPath(self, nameList):
+  def getAbsPath(self, nameList):
     return reduce(lambda e, n: e[n] , nameList, self)
 
   def __str__(self):
@@ -542,6 +556,13 @@ class PythonModuleFile(PythonModule):
 
     return res
 
+  def getRelPath(self, nameListFrom, nameListTo):
+    moduleFrom = self.getAbsPath(nameListFrom)
+    if moduleFrom._type == self.TYPE_FILE:
+      moduleFrom = moduleFrom.getUp()
+    return moduleFrom.getAbsPath(nameListTo)
+
+
   #Function that the class must implement
   def _f_listfiles(self, path): raise NotImplemented
   def _f_join(self, *args): raise NotImplemented
@@ -593,14 +614,48 @@ class PythonModuleStatic(PythonModuleFile):
     return res
 
   def _f_join(self, *args): return '/'.join(args)
-  def _f_isfile(self, path):
-    print 'f_isfile', path
-    return isinstance(self._s_getPathElement(path), str)
-
+  def _f_isfile(self, path): return isinstance(self._s_getPathElement(path), str)
   def _f_isdir(self, path): return isinstance(self._s_getPathElement(path), dict)
   def _f_content(self, path): return self._s_getPathElement(path)
   def _f_new(self, base_dir, name, up):
     return PythonModuleStatic(self._diskContent, base_dir, name, up)
+
+
+#class PythonModuleZip(PythonModuleFile):
+#
+#  def __init__(self, ziplink, up_path = '', name='', up=None):
+#    if not isinstance(ziplink, zipfile.ZipFile):
+#      ziplink = zipfile.ZipFile(ziplink, 'r')
+#    self._zip = ziplink
+#
+#    PythonModuleFile.__init__(self, up_path, name, up)
+#
+#
+#  def _f_listfiles(self, path):
+#    res = []
+#    for zipinfo in self._zip.infolist:
+#      fn = zipinfo.filename
+#
+#
+#
+#    return []
+#    names = [
+#      for self._zip.infolist
+#
+#
+#
+#  def _f_join(self, *args): raise NotImplemented
+#  def _f_isfile(self, path): raise NotImplemented
+#  def _f_isdir(self, path): raise NotImplemented
+#  def _f_content(self, path):
+#
+#
+#
+#  def _f_new(self, base_dir, name, up): raise NotImplemented
+
+
+
+
 
 
 #__EOF__
