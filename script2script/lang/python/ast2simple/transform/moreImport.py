@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from ast import *
-import ast
+import ast, md5
 import sys
 import nodeTransformer
 import os.path, os
@@ -10,6 +10,8 @@ from nodeTransformer import str2ast
 
 #TODO for the future, add a list of import to include (for the __import__('name') def)
 #TODO for the future, add a list of import to not include (because they are in a if)
+#TODO do a PythonModule for .zip files
+#TODO do a test on pyc and pyo files, saying it don't take them
 
 #Imports variations :
 #   import X => ok, have a variable = module object
@@ -422,10 +424,6 @@ class SimpleFileResolver(object):
 
 
 
-
-
-
-
 class FileSystemFile(object):
   """
   Replace a file system with a dictionary-like
@@ -442,6 +440,152 @@ class FileSystemFile(object):
   def __contins__(self, name): return False
   def __iter__(self, name): raise KeyError("File don't have a file list")
   def __str__(self): return "'%s'" % os.path.basename(self.path)
+
+
+
+class NoModuleFound(Exception): pass
+
+class PythonModule(object):
+  """
+  Represent an abstract python module
+  """
+
+  def __init__(self, name='', up=None):
+    self._name = name
+    self._up = up
+
+  def getContent(self): raise NotImplemented()
+  def getChild(self, name): raise NotImplemented()
+  def getChilds(self): raise NotImplemented()
+
+  def getName(self): return self._name
+  def __hash__(self): return hash(self._name)
+
+  def __getitem__(self, name): return self.getChild(name)
+  def __iter__(self): return iter(self.getChilds())
+
+  def getUp(name): return self._up
+
+  def getFromPath(self, nameList):
+    return reduce(lambda e, n: e[n] , nameList, self)
+
+  def __str__(self):
+    return '%s.%s' % (str(self._up), self._name)
+
+  def _forRepr(self):
+    hash_str = md5.new(self.getContent()).hexdigest()
+    dict_repr = {c.getName():c._forRepr() for c in self}
+    return (hash_str, dict_repr)
+
+  def __repr__(self):
+    """
+    Return a couple :
+    (hash, {})
+    - The first element is the hash of the content
+    - The second element is a dict of the childs {name : repr()}
+    """
+    return repr(self._forRepr())
+
+
+
+class PythonModuleFile(PythonModule): pass
+
+
+
+class PythonModuleStatic(PythonModuleFile):
+
+  def __init__(self, struct, name='', up=None):
+    PythonModule.__init__(self, name, up)
+
+    (self._content, childs) = struct
+
+    self._childs = {
+        name: PythonModuleStatic(childs[name], name, self)
+        for name in childs
+    }
+
+  def getContent(self): return self._content
+
+  def getChild(self, name):
+    try:
+      return self._childs[name]
+    except KeyError:
+      raise NoModuleFound()
+
+  def getChilds(self): return self._childs.itervalues()
+
+
+
+class PythonModuleOnDisk(PythonModuleFile):
+  """
+  Represent a python module on file system
+  """
+  TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
+
+  def __init__(self, up_path, name='', up=None):
+    PythonModuleFile.__init__(self, name, up)
+
+    if self._up is not None:
+      infos = self._findRepModule(up_path) or self._findFileModule(up_path)
+      if infos is None: raise NoModuleFound('No module with name %s in path %s' % (self._name, up_path))
+      self._type, self._contentFile, self._base_dir = infos
+    else:
+      self._type, self._contentFile, self._base_dir = (self.TYPE_ROOT, None, up_path)
+
+    self._content = None
+
+  def _findRepModule(self, up_path):
+    dirPath = os.path.join(up_path, self._name)
+    filePath = os.path.join(dirPath, '__init__.py')
+    if not os.path.isfile(filePath): return None
+    return (self.TYPE_DIR, filePath, dirPath)
+
+  def _findFileModule(self, up_path):
+    filePath = os.path.join(up_path, '%s.py' % self._name)
+    if not os.path.isfile(filePath): return None
+    return (self.TYPE_FILE, filePath, up_path)
+
+  def getContent(self):
+    if self._up is None: return ''
+    if self._content is None:
+      with open(self._contentFile, 'r') as f:
+        self._content = f.read()
+    return self._content
+
+  def getChild(self, name):
+    if '.' in name: raise NoModuleFound('no dots allowed in module name')
+    if self._type == self.TYPE_FILE : raise NoModuleFound('file module has no childs')
+    if name == '__init__': raise NoModuleFound('__init__ are reserved for dir elements')
+    return PythonModuleOnDisk(self._base_dir, name, self)
+
+  def getChilds(self):
+    if self._type == self.TYPE_FILE : return []
+    res = []
+    for name in os.listdir(self._base_dir):
+      if name[-3:] == '.py': name = name[:-3]
+
+      try:
+        mod = self.getChild(name)
+      except NoModuleFound:
+        pass
+      else:
+        res.append(mod)
+
+    return res
+
+
+
+
+
+
+class PythonModuleLoaded(PythonModule):
+  def __init__(self, path):
+    #TODO
+    pass
+
+
+
+
 
 
 

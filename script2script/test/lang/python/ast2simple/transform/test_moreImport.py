@@ -9,76 +9,76 @@ from script2script.lang.python.ast2simple.transform.moreImport import *
 testPath = os.path.join(os.path.dirname(__file__), 'importTest')
 
 
-class TestFileSystem(unittest.TestCase):
+class TestPythonModuleFile(unittest.TestCase):
 
-  def test_buildFromDir(self):
-    fsd = FileSystemDir(testPath)
+  def test_construction(self):
+    pmf = PythonModuleOnDisk(testPath)
 
-    fsd_str = str(fsd)
+    waiting_for = ("('d41d8cd98f00b204e9800998ecf8427e', {"
+      "'importTest_complex': ('8f1fe1ae1a4c96bf0b748ce844749ebc', {"
+        "'toto': ('8173c640b6c07b3f0d47c9a8f45875b3', {}), "
+        "'tutu': ('8f134b982b689ecfb87ac0a03c7d774c', {})"
+      "}), "
+        "'importTest_first': ('15677e4928e7fe59a4da3544371a1895', {"
+        "'import_first': ('6f4114b0b9e2e71f075cb867b2ce8443', {})"
+      "}), "
+      "'importTest_simple': ('3a0008caa56ac47f82d9d19e07473efa', {})"
+    "})")
 
-    waiting_for = "importTest/ : {"  \
-        "importTest_complex/ : {" \
-          "'tutu.py', 'toto.py', '__init__.py'" \
-          "}, " \
-          "importTest_first/ : {" \
-            "'import_first.py', '__init__.py'" \
-           "}, " \
-           "importTest_empty/ : {}, " \
-           "'importTest_simple.py'" \
-        "}"
-
-    self.assertEquals(fsd_str, waiting_for)
-
+    self.assertEquals(repr(pmf), waiting_for)
 
 
 class TestSimpleFileResolver(unittest.TestCase):
 
   def setUp(self):
+    self.paths = ('', {
+      'importTest_complex' : ('importTest_complex/__init__.py', {
+        'tutu': ('importTest_complex/tutu.py', {}),
+        'toto': ('importTest_complex/toto.py', {}),
+        #'__init__': None,
+      }),
+      'importTest_first' : ('importTest_first/__init__.py', {
+        'import_first' : ('importTest_first/import_first.py', {}),
+        #'__init__': None,
+      }),
+      'importTest_simple': ('importTest_simple.py', {}),
+    })
 
-    self.paths = {
-       'importTest_complex/' : {
-          'tutu.py':'importTest_complex/tutu.py content',
-          'toto.py':'importTest_complex/toto.py content',
-          '__init__.py':'importTest_complex/__init__.py content',
-        },
-        'importTest_first/' : {
-           'import_first.py':'importTest_first/import_first.py content',
-           '__init__.py':'importTest_first/__init__.py content',
-         },
-         'importTest_empty/' : {},
-         'importTest_simple.py':'importTest_simple.py content',
-    }
+  def test_simpleResolver(self):
 
-  def test_calPythonPath(self):
+    pms = PythonModuleStatic(self.paths)
 
-    sfr = SimpleFileResolver(self.paths)
-
-    self.assertEquals(sfr._callPythonPath(['importTest_complex']), ['importTest_complex/', '__init__.py'])
-    self.assertEquals(sfr._callPythonPath(['importTest_complex/']), None)
-    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'toto']), ['importTest_complex/', 'toto.py'])
-    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'titi']), None)
-    self.assertEquals(sfr._callPythonPath(['importTest_simple']), ['importTest_simple.py'])
-
-  def test_getFileObjectFromPath(self):
-
-    sfr = SimpleFileResolver(self.paths)
-
-    self.assertEquals(sfr._path2file(['importTest_complex/', '__init__.py']), 'importTest_complex/__init__.py content')
-    self.assertEquals(sfr._path2file(['importTest_complex/', 'toto.py']), 'importTest_complex/toto.py content')
-    self.assertEquals(sfr._path2file(['importTest_simple.py']), 'importTest_simple.py content')
+    #self.assertEquals(
+    #    pms.sfr.getModule('importTest_complex'),
+    #    ['importTest_complex/', '__init__.py']
+    #)
 
 
-  def test_simpleResolve(self):
-
-    sfr = SimpleFileResolver(self.paths)
-
-    self.assertEquals(sfr.simpleFind('', 'importTest_simple'), ['importTest_simple.py'])
-    self.assertEquals(sfr.simpleFind('', 'titi'), None)
-    self.assertEquals(sfr.simpleFind('toto', 'titi'), None)
-    self.assertEquals(sfr.simpleFind('importTest_simple', 'importTest_simple'), ['importTest_simple.py'])
-
-    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'titi'), None)
-    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'toto'), ['importTest_complex/', 'toto.py'])
+#    self.assertEquals(sfr._callPythonPath(['importTest_complex/']), None)
+#    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'toto']), ['importTest_complex/', 'toto.py'])
+#    self.assertEquals(sfr._callPythonPath(['importTest_complex', 'titi']), None)
+#    self.assertEquals(sfr._callPythonPath(['importTest_simple']), ['importTest_simple.py'])
+#
+#  def test_getFileObjectFromPath(self):
+#
+#    sfr = SimpleFileResolver(self.paths)
+#
+#    self.assertEquals(sfr._path2file(['importTest_complex/', '__init__.py']), 'importTest_complex/__init__.py content')
+#    self.assertEquals(sfr._path2file(['importTest_complex/', 'toto.py']), 'importTest_complex/toto.py content')
+#    self.assertEquals(sfr._path2file(['importTest_simple.py']), 'importTest_simple.py content')
+#
+#
+#  def test_simpleResolve(self):
+#
+#    sfr = SimpleFileResolver(self.paths)
+#
+#    self.assertEquals(sfr.simpleFind('', 'importTest_simple'), ['importTest_simple.py'])
+#    self.assertEquals(sfr.simpleFind('', 'titi'), None)
+#    self.assertEquals(sfr.simpleFind('toto', 'titi'), None)
+#    self.assertEquals(sfr.simpleFind('importTest_simple', 'importTest_simple'), ['importTest_simple.py'])
+#
+#    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'titi'), None)
+#    self.assertEquals(sfr.simpleFind('importTest_complex.__init__', 'toto'), ['importTest_complex/', 'toto.py'])
 
 
 #   import X => ok, have a variable = module object
