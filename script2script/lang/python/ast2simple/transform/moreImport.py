@@ -454,9 +454,9 @@ class PythonModule(object):
     self._name = name
     self._up = up
 
-  def getContent(self): raise NotImplemented()
-  def getChild(self, name): raise NotImplemented()
-  def getChilds(self): raise NotImplemented()
+  def getContent(self): raise NotImplemented
+  def getChild(self, name): raise NotImplemented
+  def getChilds(self): raise NotImplemented
 
   def getName(self): return self._name
   def __hash__(self): return hash(self._name)
@@ -488,80 +488,49 @@ class PythonModule(object):
 
 
 
-class PythonModuleFile(PythonModule): pass
-
-
-
-class PythonModuleStatic(PythonModuleFile):
-
-  def __init__(self, struct, name='', up=None):
-    PythonModule.__init__(self, name, up)
-
-    (self._content, childs) = struct
-
-    self._childs = {
-        name: PythonModuleStatic(childs[name], name, self)
-        for name in childs
-    }
-
-  def getContent(self): return self._content
-
-  def getChild(self, name):
-    try:
-      return self._childs[name]
-    except KeyError:
-      raise NoModuleFound()
-
-  def getChilds(self): return self._childs.itervalues()
-
-
-
-class PythonModuleOnDisk(PythonModuleFile):
+class PythonModuleFile(PythonModule):
   """
   Represent a python module on file system
+  Could be any file system, this class must be inherited
   """
   TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
 
   def __init__(self, up_path, name='', up=None):
-    PythonModuleFile.__init__(self, name, up)
+    PythonModule.__init__(self, name, up)
 
-    if self._up is not None:
+    if self._up is None:
+      self._type, self._contentFile, self._base_dir = (self.TYPE_ROOT, None, up_path)
+      self._content = ''
+    else:
       infos = self._findRepModule(up_path) or self._findFileModule(up_path)
       if infos is None: raise NoModuleFound('No module with name %s in path %s' % (self._name, up_path))
       self._type, self._contentFile, self._base_dir = infos
-    else:
-      self._type, self._contentFile, self._base_dir = (self.TYPE_ROOT, None, up_path)
+      self._content = self._f_content(self._contentFile)
 
-    self._content = None
 
   def _findRepModule(self, up_path):
-    dirPath = os.path.join(up_path, self._name)
-    filePath = os.path.join(dirPath, '__init__.py')
-    if not os.path.isfile(filePath): return None
+    dirPath = self._f_join(up_path, self._name)
+    filePath = self._f_join(dirPath, '__init__.py')
+    if not self._f_isfile(filePath): return None
     return (self.TYPE_DIR, filePath, dirPath)
 
   def _findFileModule(self, up_path):
-    filePath = os.path.join(up_path, '%s.py' % self._name)
-    if not os.path.isfile(filePath): return None
+    filePath = self._f_join(up_path, '%s.py' % self._name)
+    if not self._f_isfile(filePath): return None
     return (self.TYPE_FILE, filePath, up_path)
 
-  def getContent(self):
-    if self._up is None: return ''
-    if self._content is None:
-      with open(self._contentFile, 'r') as f:
-        self._content = f.read()
-    return self._content
+  def getContent(self): return self._content
 
   def getChild(self, name):
     if '.' in name: raise NoModuleFound('no dots allowed in module name')
     if self._type == self.TYPE_FILE : raise NoModuleFound('file module has no childs')
     if name == '__init__': raise NoModuleFound('__init__ are reserved for dir elements')
-    return PythonModuleOnDisk(self._base_dir, name, self)
+    return self._f_new(self._base_dir, name, self)
 
   def getChilds(self):
     if self._type == self.TYPE_FILE : return []
     res = []
-    for name in os.listdir(self._base_dir):
+    for name in self._f_listfiles(self._base_dir):
       if name[-3:] == '.py': name = name[:-3]
 
       try:
@@ -573,52 +542,65 @@ class PythonModuleOnDisk(PythonModuleFile):
 
     return res
 
+  #Function that the class must implement
+  def _f_listfiles(self, path): raise NotImplemented
+  def _f_join(self, *args): raise NotImplemented
+  def _f_isfile(self, path): raise NotImplemented
+  def _f_isdir(self, path): raise NotImplemented
+  def _f_content(self, path): raise NotImplemented
+  def _f_new(self, base_dir, name, up): raise NotImplemented
 
 
 
 
 
-class PythonModuleLoaded(PythonModule):
-  def __init__(self, path):
-    #TODO
-    pass
+
+
+
+class PythonModuleOnDisk(PythonModuleFile):
+  """
+  Represent a python module on file system
+  """
+  TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
+
+  def _f_listfiles(self, path): return os.listdir(path)
+  def _f_join(self, *args): return os.path.join(*args)
+  def _f_isfile(self, path): return os.path.isfile(path)
+  def _f_isdir(self, path): return os.path.isdir(path)
+  def _f_content(self, path):
+    with open(path) as f:
+      return f.read()
+  def _f_new(self, base_dir, name, up):
+    return PythonModuleOnDisk(base_dir, name, up)
 
 
 
 
+class PythonModuleStatic(PythonModuleFile):
 
+  def __init__(self, diskContent, up_path = '', name='', up=None):
+    self._diskContent = diskContent if '' in diskContent else {'':diskContent}
+    PythonModuleFile.__init__(self, up_path, name, up)
 
+  def _s_getPathElement(self, path):
+    try:
+      return reduce(lambda r, n : r[n], path.split('/'), self._diskContent)
+    except KeyError:
+      return None
 
-class FileSystemDir(FileSystemFile):
+  def _f_listfiles(self, path):
+    res = list(self._s_getPathElement(path).iterkeys())
+    return res
 
-  def __init__(self, root):
-    self.root = root
-    self.chiblings = None
+  def _f_join(self, *args): return '/'.join(args)
+  def _f_isfile(self, path):
+    print 'f_isfile', path
+    return isinstance(self._s_getPathElement(path), str)
 
-  def _genChiblings(self):
-    if self.chiblings is not None: return
-
-    self.chiblings = {}
-    for f in os.listdir(self.root):
-      fpath = os.path.join(self.root, f)
-
-      if os.path.isfile(fpath):
-        self.chiblings[f] = FileSystemFile(fpath)
-      elif os.path.isdir(fpath):
-        self.chiblings['%s/' % f] = FileSystemDir(fpath)
-      else:
-        assert False, "what is this file %s ??" % fpath
-
-  def __getitem__(self, name): self._genChiblings() ; return self.chiblings[name]
-  def __contains__(self, name): self._genChiblings() ;  return name in self.chiblings
-  def __iter__(self): self._genChiblings() ; return iter(self.chiblings)
-
-  def __str__(self):
-    res = []
-    for name in self:
-      res.append( str(self[name]))
-    return '%s/ : {%s}' % (os.path.basename(self.root), ', '.join(res))
-
+  def _f_isdir(self, path): return isinstance(self._s_getPathElement(path), dict)
+  def _f_content(self, path): return self._s_getPathElement(path)
+  def _f_new(self, base_dir, name, up):
+    return PythonModuleStatic(self._diskContent, base_dir, name, up)
 
 
 #__EOF__

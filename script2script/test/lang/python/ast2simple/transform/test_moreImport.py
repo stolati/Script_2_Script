@@ -9,44 +9,61 @@ from script2script.lang.python.ast2simple.transform.moreImport import *
 testPath = os.path.join(os.path.dirname(__file__), 'importTest')
 
 
-class TestPythonModuleFile(unittest.TestCase):
-
-  def test_construction(self):
-    pmf = PythonModuleOnDisk(testPath)
-
-    waiting_for = ("('d41d8cd98f00b204e9800998ecf8427e', {"
-      "'importTest_complex': ('8f1fe1ae1a4c96bf0b748ce844749ebc', {"
-        "'toto': ('8173c640b6c07b3f0d47c9a8f45875b3', {}), "
-        "'tutu': ('8f134b982b689ecfb87ac0a03c7d774c', {})"
-      "}), "
-        "'importTest_first': ('15677e4928e7fe59a4da3544371a1895', {"
-        "'import_first': ('6f4114b0b9e2e71f075cb867b2ce8443', {})"
-      "}), "
-      "'importTest_simple': ('3a0008caa56ac47f82d9d19e07473efa', {})"
-    "})")
-
-    self.assertEquals(repr(pmf), waiting_for)
+#class TestPythonModuleFile(unittest.TestCase):
+#
+#  def test_construction(self):
+#    pmf = PythonModuleOnDisk(testPath)
+#
+#    waiting_for = ("('d41d8cd98f00b204e9800998ecf8427e', {"
+#      "'importTest_complex': ('8f1fe1ae1a4c96bf0b748ce844749ebc', {"
+#        "'toto': ('8173c640b6c07b3f0d47c9a8f45875b3', {}), "
+#        "'tutu': ('8f134b982b689ecfb87ac0a03c7d774c', {})"
+#      "}), "
+#        "'importTest_first': ('15677e4928e7fe59a4da3544371a1895', {"
+#        "'import_first': ('6f4114b0b9e2e71f075cb867b2ce8443', {})"
+#      "}), "
+#      "'importTest_simple': ('3a0008caa56ac47f82d9d19e07473efa', {})"
+#    "})")
+#
+#    self.assertEquals(repr(pmf), waiting_for)
 
 
 class TestSimpleFileResolver(unittest.TestCase):
 
   def setUp(self):
-    self.paths = ('', {
-      'importTest_complex' : ('importTest_complex/__init__.py', {
-        'tutu': ('importTest_complex/tutu.py', {}),
-        'toto': ('importTest_complex/toto.py', {}),
-        #'__init__': None,
-      }),
-      'importTest_first' : ('importTest_first/__init__.py', {
-        'import_first' : ('importTest_first/import_first.py', {}),
-        #'__init__': None,
-      }),
-      'importTest_simple': ('importTest_simple.py', {}),
-    })
+    #self.paths = ('', {
+    #  'importTest_complex' : ('importTest_complex/__init__.py', {
+    #    'tutu': ('importTest_complex/tutu.py', {}),
+    #    'toto': ('importTest_complex/toto.py', {}),
+    #    #'__init__': None,
+    #  }),
+    #  'importTest_first' : ('importTest_first/__init__.py', {
+    #    'import_first' : ('importTest_first/import_first.py', {}),
+    #    #'__init__': None,
+    #  }),
+    #  'importTest_simple': ('importTest_simple.py', {}),
+    #})
+
+    self.paths = {
+      'importTest_complex' : {
+        'tutu.py': 'importTest_complex/tutu.py',
+        'toto.py': 'importTest_complex/toto.py',
+        '__init__.py': 'importTest_complex/__init__.py',
+      },
+      'importTest_first' :  {
+        'import_first.py' : 'importTest_first/import_first.py',
+        '__init__.py': 'importTest_first/__init__.py',
+      },
+      'imporTest_empty': {},
+      'importTest_simple.py': 'importTest_simple.py',
+    }
+
 
   def test_simpleResolver(self):
 
     pms = PythonModuleStatic(self.paths)
+    fc = pms.getChild('importTest_simple')
+    print repr(pms)
 
     #self.assertEquals(
     #    pms.sfr.getModule('importTest_complex'),
