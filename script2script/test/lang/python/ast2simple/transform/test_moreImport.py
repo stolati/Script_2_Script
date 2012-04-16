@@ -84,27 +84,135 @@ class TestSimpleFileResolver(unittest.TestCase):
 
 
   def test_simpleResolver(self):
-    pms = PythonModuleStatic(self.paths)
 
+    testVals = [
+      #abs path
+      (('toto', ''), None),
+      (('importTest_simple', ''), 'importTest_simple.py'),
+      (('importTest_complex', ''), 'importTest_complex/__init__.py'),
+      (('importTest_complex.tutu', ''), 'importTest_complex/tutu.py'),
+
+      (('toto', 'importTest_first'), None),
+      (('importTest_simple', 'importTest_first'), 'importTest_simple.py'),
+      (('importTest_complex', 'importTest_first'), 'importTest_complex/__init__.py'),
+      (('importTest_complex.tutu', 'importTest_first'), 'importTest_complex/tutu.py'),
+
+      #rel path
+      (('import_first', 'importTest_first'), 'importTest_first/import_first.py'),
+      (('tutu', 'importTest_complex'), 'importTest_complex/tutu.py'),
+      (('tutu', 'importTest_complex.toto'), 'importTest_complex/tutu.py'),
+      (('toto', 'importTest_complex.tutu'), 'importTest_complex/toto.py'),
+      (('tyty.trala', 'importTest_complex.toto'), 'importTest_complex/tyty/trala.py'),
+    ]
+
+    pms = PythonModuleStatic(self.paths)
     sfr = SimpleFileResolver(pms)
 
-    #abs path
-    self.assertEquals(sfr.find('', 'toto'), None)
-    self.assertEquals(sfr.find('', 'importTest_simple'), 'importTest_simple.py')
-    self.assertEquals(sfr.find('', 'importTest_complex'), 'importTest_complex/__init__.py')
-    self.assertEquals(sfr.find('', 'importTest_complex.tutu'), 'importTest_complex/tutu.py')
+    for (strTo, strFrom), resWait in testVals:
+      m = sfr.find(strTo, strFrom)
+      resReal = m.getContent() if m is not None else None
+      self.assertEquals(resWait, resReal)
 
-    self.assertEquals(sfr.find('importTest_first', 'toto'), None)
-    self.assertEquals(sfr.find('importTest_first', 'importTest_simple'), 'importTest_simple.py')
-    self.assertEquals(sfr.find('importTest_first', 'importTest_complex'), 'importTest_complex/__init__.py')
-    self.assertEquals(sfr.find('importTest_first', 'importTest_complex.tutu'), 'importTest_complex/tutu.py')
 
-    #rel path
-    self.assertEquals(sfr.find('importTest_first', 'import_first'), 'importTest_first/import_first.py')
-    self.assertEquals(sfr.find('importTest_complex', 'tutu'), 'importTest_complex/tutu.py')
-    self.assertEquals(sfr.find('importTest_complex.toto', 'tutu'), 'importTest_complex/tutu.py')
-    self.assertEquals(sfr.find('importTest_complex.tutu', 'toto'), 'importTest_complex/toto.py')
-    self.assertEquals(sfr.find('importTest_complex.toto', 'tyty.trala'), 'importTest_complex/tyty/trala.py')
+
+class TestMultipleModuleList(unittest.TestCase):
+
+  def setUp(self):
+    self.paths = [
+      {
+        'a1' : {
+          'a.py': 'a1/a.py',
+          'b.py': 'a1/b.py',
+          '__init__.py': 'a1/__init__.py',
+          'c': {
+            'a.py': 'a/c/a.py',
+            '__init__.py': 'a/c/__init__.py',
+          },
+        },
+        'a2' :  {
+          'a.py' : 'a2/a.py',
+          '__init__.py': 'a2/__init__.py',
+        },
+        'a3.py': 'a3.py',
+      },
+      {
+        'a4' : {
+          'a.py': 'a4/a.py',
+          'b.py': 'a4/b.py',
+          '__init__.py': 'a4/__init__.py',
+          'c': {
+            'a.py': 'a4/c/a.py',
+            '__init__.py': 'a4/c/__init__.py',
+          },
+        },
+        'a5' :  {
+          'a.py' : 'a5/a.py',
+          '__init__.py': 'a5/__init__.py',
+        },
+        'a6.py': 'a6.py',
+      }
+    ]
+
+  def testPaths(self):
+
+    #fromPath, goalPath => filePath, normalizedPath
+    testVals = [
+
+      #(('a1', ''), ('0/a1/__init__.py', '0.a1')), #load a module dir
+      #(('a1.a', ''), ('0/a1/a.py', '0.a1.a')), #load a module file
+      (('a4', '0.a1'), ('1/a4/__init__.py', '1.a4')), #load a dir module from the other side
+      #(('a4.a', '0.a1'), ('1/a4/a.py', '1.a4.a')), #load a file module from the other side
+      #(('a', '0.a1'), ('0/a1/a.py', '0.a1.a')), #load a file from inside
+      #(('c', '0.a1'), ('0/a1/c/__init__.py', '0.a1.c')), #load a dir from inside
+      #(('c.a', '0.a1'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from inside
+      ##(('a1.c.a', ''), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from base
+      ##(('a1.c.a', '1.a4.c.a'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from other side
+      #(('a', '0.a1.c'), ('0/a1/c/a.py', '0.a1.c.a')), #acces 'a' from a stuff
+      #(('a', '0.a2'), ('0/a2/a.py', '0.a2.a')), #acess 'a' from another stuff
+
+      ##same as previous, the other way around
+      #(('a4', ''), ('1/a4/__init__.py', '1.a4')), #load a module dir
+      #(('a4.a', ''), ('1/a4/a.py', '1.a4.a')), #load a module file
+      #(('a1', '1.a4'), ('0/a1/__init__.py', '1.a1')), #load a dir module from the other side
+      #(('a1.a', '1.a4'), ('0/a1/a.py', '1.a1.a')), #load a file module from the other side
+      #(('a', '1.a4'), ('1/a4/a.py', '0.a4.a')), #load a file from inside
+      #(('c', '1.a4'), ('1/a4/c/__init__.py', '0.a4.c')), #load a dir from inside
+      #(('c.a', '1.a4'), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from inside
+      #(('a4.c.a', ''), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from base
+      #(('a4.c.a', '0.a1.c.a'), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from other side
+      #(('a', '1.a4.c'), ('1/a4/c/a.py', '0.a4.c.a')), #acces 'a' from a stuff
+      #(('a', '1.a5'), ('1/a5/a.py', '0.a5.a')), #acess 'a' from another stuff
+    ]
+
+    pml = PythonModuleList()
+
+    for e in self.paths:
+      pml.addModule(lambda name : PythonModuleStatic(e, name=name))
+
+    sfr = SimpleFileResolver(pml)
+
+
+    for (toStr, fromStr), (pathRes, nameRes) in testVals:
+      res = sfr.find(toStr, fromStr)
+      if res is None:
+        pathResReal, nameResReal = (None, None)
+      else:
+        pathResReal = res.getPath()
+        nameResReal = '.'.join(res.getNames())
+
+      print (toStr, fromStr)
+      print (pathResReal, nameResReal), (pathRes, nameRes)
+      print (pathResReal, nameResReal) == (pathRes, nameRes)
+
+      #self.assert
+
+
+
+
+
+
+
+
 
 
 
