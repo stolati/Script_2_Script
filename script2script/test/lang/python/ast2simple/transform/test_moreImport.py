@@ -158,30 +158,30 @@ class TestMultipleModuleList(unittest.TestCase):
     #fromPath, goalPath => filePath, normalizedPath
     testVals = [
 
-      #(('a1', ''), ('0/a1/__init__.py', '0.a1')), #load a module dir
-      #(('a1.a', ''), ('0/a1/a.py', '0.a1.a')), #load a module file
+      (('a1', ''), ('0/a1/__init__.py', '0.a1')), #load a module dir
+      (('a1.a', ''), ('0/a1/a.py', '0.a1.a')), #load a module file
       (('a4', '0.a1'), ('1/a4/__init__.py', '1.a4')), #load a dir module from the other side
-      #(('a4.a', '0.a1'), ('1/a4/a.py', '1.a4.a')), #load a file module from the other side
-      #(('a', '0.a1'), ('0/a1/a.py', '0.a1.a')), #load a file from inside
-      #(('c', '0.a1'), ('0/a1/c/__init__.py', '0.a1.c')), #load a dir from inside
-      #(('c.a', '0.a1'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from inside
-      ##(('a1.c.a', ''), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from base
-      ##(('a1.c.a', '1.a4.c.a'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from other side
-      #(('a', '0.a1.c'), ('0/a1/c/a.py', '0.a1.c.a')), #acces 'a' from a stuff
-      #(('a', '0.a2'), ('0/a2/a.py', '0.a2.a')), #acess 'a' from another stuff
+      (('a4.a', '0.a1'), ('1/a4/a.py', '1.a4.a')), #load a file module from the other side
+      (('a', '0.a1'), ('0/a1/a.py', '0.a1.a')), #load a file from inside
+      (('c', '0.a1'), ('0/a1/c/__init__.py', '0.a1.c')), #load a dir from inside
+      (('c.a', '0.a1'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from inside
+      (('a1.c.a', ''), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from base
+      (('a1.c.a', '1.a4.c.a'), ('0/a1/c/a.py', '0.a1.c.a')), #load a dir/file from other side
+      (('a', '0.a1.c'), ('0/a1/c/a.py', '0.a1.c.a')), #acces 'a' from a stuff
+      (('a', '0.a2'), ('0/a2/a.py', '0.a2.a')), #acess 'a' from another stuff
 
       ##same as previous, the other way around
-      #(('a4', ''), ('1/a4/__init__.py', '1.a4')), #load a module dir
-      #(('a4.a', ''), ('1/a4/a.py', '1.a4.a')), #load a module file
-      #(('a1', '1.a4'), ('0/a1/__init__.py', '1.a1')), #load a dir module from the other side
-      #(('a1.a', '1.a4'), ('0/a1/a.py', '1.a1.a')), #load a file module from the other side
-      #(('a', '1.a4'), ('1/a4/a.py', '0.a4.a')), #load a file from inside
-      #(('c', '1.a4'), ('1/a4/c/__init__.py', '0.a4.c')), #load a dir from inside
-      #(('c.a', '1.a4'), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from inside
-      #(('a4.c.a', ''), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from base
-      #(('a4.c.a', '0.a1.c.a'), ('1/a4/c/a.py', '0.a4.c.a')), #load a dir/file from other side
-      #(('a', '1.a4.c'), ('1/a4/c/a.py', '0.a4.c.a')), #acces 'a' from a stuff
-      #(('a', '1.a5'), ('1/a5/a.py', '0.a5.a')), #acess 'a' from another stuff
+      (('a4', ''), ('1/a4/__init__.py', '1.a4')), #load a module dir
+      (('a4.a', ''), ('1/a4/a.py', '1.a4.a')), #load a module file
+      (('a1', '1.a4'), ('0/a1/__init__.py', '0.a1')), #load a dir module from the other side
+      (('a1.a', '1.a4'), ('0/a1/a.py', '0.a1.a')), #load a file module from the other side
+      (('a', '1.a4'), ('1/a4/a.py', '1.a4.a')), #load a file from inside
+      (('c', '1.a4'), ('1/a4/c/__init__.py', '1.a4.c')), #load a dir from inside
+      (('c.a', '1.a4'), ('1/a4/c/a.py', '1.a4.c.a')), #load a dir/file from inside
+      (('a4.c.a', ''), ('1/a4/c/a.py', '1.a4.c.a')), #load a dir/file from base
+      (('a4.c.a', '0.a1.c.a'), ('1/a4/c/a.py', '1.a4.c.a')), #load a dir/file from other side
+      (('a', '1.a4.c'), ('1/a4/c/a.py', '1.a4.c.a')), #acces 'a' from a stuff
+      (('a', '1.a5'), ('1/a5/a.py', '1.a5.a')), #acess 'a' from another stuff
     ]
 
     pml = PythonModuleList()
@@ -200,9 +200,13 @@ class TestMultipleModuleList(unittest.TestCase):
         pathResReal = res.getPath()
         nameResReal = '.'.join(res.getNames())
 
-      print (toStr, fromStr)
-      print (pathResReal, nameResReal), (pathRes, nameRes)
-      print (pathResReal, nameResReal) == (pathRes, nameRes)
+      #print (toStr, fromStr)
+      #print (pathResReal, nameResReal), (pathRes, nameRes)
+      #print (pathResReal, nameResReal) == (pathRes, nameRes)
+
+      self.assertEquals(pathRes, pathResReal)
+      self.assertEquals(nameRes, nameResReal)
+
 
       #self.assert
 

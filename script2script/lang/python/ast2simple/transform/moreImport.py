@@ -339,20 +339,22 @@ class SimpleFileResolver(object):
     """
     helper function to get the content of the result
     """
-    return self.getModule(toStr.split('.'), fromStr.split('.'))
+    return self.getModule(self._str2names(toStr), self._str2names(fromStr))
+
+  @staticmethod
+  def _str2names(s): return s.split('.') if s else []
 
   def getModule(self, toPath, fromPath=''):
 
     #test from the relative path
     if fromPath:
       try:
-        return self.pm.getNamesRel(fromPath, toPath)
+        return self.pm.getNamesRel(toPath, fromPath)
       except NoModuleFound:
         pass
 
     #test from the absolute path
     try:
-      print toPath
       return self.pm.getNamesAbs(toPath)
     except NoModuleFound:
       pass
@@ -433,7 +435,6 @@ class PythonModuleList(PythonModule):
   def getContent(self): return ''
 
   def getChild(self, name):
-    print self, name
     try:
       return self._modules[int(name)]
     except ValueError:
@@ -444,31 +445,43 @@ class PythonModuleList(PythonModule):
   def getChilds(self): return list(self._modules)
 
 
-
   def getNamesAbs(self, nameList):
-    print nameList
+    if not nameList: return self
+
+    #print 'getNamesAbs', nameList
     try: #if nameList contain the digit
       i, nameListTemp = int(nameList[0]), nameList[1:]
-      print 'is a number'
 
       m = self._modules[i]
-      m.getNamesAbs(nameListTemp)
+      res = m.getNamesAbs(nameListTemp)
+
+      return res
 
     except ValueError: pass
     except IndexError: pass
+    except NoModuleFound: pass
 
     #test for each modules
     for m in self._modules:
-      res = m.getNamesAbs(nameList)
-      if res is not None: return res
+      try:
+        res = m.getNamesAbs(nameList)
+        return res
+      except NoModuleFound:
+        pass
 
     return None
 
 
   def getNamesRel(self, nameListTo, nameListFrom):
+    #print 'getNamesRel', nameListTo, nameListFrom
+    #TODO to remove
     if len(nameListFrom) == 0: return self.getNamesAbs(nameListTo)
 
+    #print 'not null'
+
     fromElement = self.getNamesAbs(nameListFrom)
+    #print 'fromElement', fromElement
+
     if fromElement is None: return None
 
     return fromElement.getNamesAbs(nameListTo)
@@ -529,7 +542,7 @@ class PythonModuleFile(PythonModule):
 
     return res
 
-  def getNamesRel(self, nameListFrom, nameListTo):
+  def getNamesRel(self, nameListTo, nameListFrom):
     moduleFrom = self.getNamesAbs(nameListFrom)
     if moduleFrom._type == self.TYPE_FILE:
       moduleFrom = moduleFrom.getUp()
@@ -545,7 +558,6 @@ class PythonModuleFile(PythonModule):
   def _f_isdir(self, path): raise NotImplemented
   def _f_content(self, path): raise NotImplemented
   def _f_new(self, base_dir, name, up): raise NotImplemented
-
 
 
 
@@ -599,6 +611,58 @@ class PythonModuleStatic(PythonModuleFile):
   def _f_content(self, path): return self._s_getPathElement(path)
   def _f_new(self, base_dir, name, up):
     return PythonModuleStatic(self._diskContent, base_dir, name, up)
+
+
+
+
+class PythonModuleStatic(PythonModuleFile):
+  """
+  The root element should be unamed,
+  If it's have a name, it should be taken care with the upper element
+  """
+
+  def __init__(self, diskContent, up_path = '', name='', up=None):
+    if up is None: #useful for test
+      up_path = name = name or up_path or '' #force if the name/up_path is not ''
+      self._diskContent = diskContent #diskContent if name in diskContent else {name:diskContent}
+      self._root = self
+    else:
+      self._root = up._root
+      self._diskContent = diskContent
+
+    PythonModuleFile.__init__(self, up_path, name, up)
+
+  def _s_getPathElement(self, path):
+    try:
+      return reduce(lambda r, n : r[n], path.split('/')[1:], self._diskContent)
+    except KeyError:
+      return None
+
+  def _f_listfiles(self, path):
+    pathElem = self._s_getPathElement(path)
+    if pathElem is None : return []
+    return list(pathElem.iterkeys())
+
+  def _f_join(self, *args): return '/'.join(args)
+  def _f_isfile(self, path): return isinstance(self._s_getPathElement(path), str)
+  def _f_isdir(self, path): return isinstance(self._s_getPathElement(path), dict)
+  def _f_content(self, path): return self._s_getPathElement(path)
+  def _f_new(self, base_dir, name, up):
+    return PythonModuleStatic(self._diskContent, base_dir, name, up)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #class PythonModuleZip(PythonModuleFile):
