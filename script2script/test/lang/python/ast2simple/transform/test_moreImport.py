@@ -118,7 +118,7 @@ class TestSimpleFileResolver(unittest.TestCase):
 class TestMultipleModuleList(unittest.TestCase):
 
   def setUp(self):
-    self.paths = [
+    self.test_static = [
       {
         'a1' : {
           'a.py': 'a1/a.py',
@@ -153,11 +153,20 @@ class TestMultipleModuleList(unittest.TestCase):
       }
     ]
 
-  def testPaths(self):
 
-    #fromPath, goalPath => filePath, normalizedPath
-    testVals = [
+    place = os.path.join(testPath, 'onModule')
 
+    self.test_ondisk = [
+      os.path.join(place, 'importA'),
+      os.path.join(place, 'importB'),
+    ]
+
+    self.test_zip = [
+      os.path.join(place, 'importA.zip'),
+      os.path.join(place, 'importB.zip'),
+    ]
+
+    self.testVals = [
       (('a1', ''), ('0/a1/__init__.py', '0.a1')), #load a module dir
       (('a1.a', ''), ('0/a1/a.py', '0.a1.a')), #load a module file
       (('a4', '0.a1'), ('1/a4/__init__.py', '1.a4')), #load a dir module from the other side
@@ -184,39 +193,45 @@ class TestMultipleModuleList(unittest.TestCase):
       (('a', '1.a5'), ('1/a5/a.py', '1.a5.a')), #acess 'a' from another stuff
     ]
 
+
+  def loopTestsOn(self, (moduleAFct, resAFct), (moduleBFct, resBFct)):
+
     pml = PythonModuleList()
 
-    for e in self.paths:
-      pml.addModule(lambda name : PythonModuleStatic(e, name=name))
+    pml.addModule(moduleAFct)
+    pml.addModule(moduleBFct)
 
     sfr = SimpleFileResolver(pml)
 
-
-    for (toStr, fromStr), (pathRes, nameRes) in testVals:
+    for (toStr, fromStr), (pathRes, nameRes) in self.testVals:
       res = sfr.find(toStr, fromStr)
       if res is None:
         pathResReal, nameResReal = (None, None)
       else:
-        pathResReal = res.getPath()
-        nameResReal = '.'.join(res.getNames())
+        pathResReal, nameResReal = res.getPath(), '.'.join(res.getNames())
+        pathResReal = resAFct(resBFct(pathResReal))
 
-      #print (toStr, fromStr)
-      #print (pathResReal, nameResReal), (pathRes, nameRes)
-      #print (pathResReal, nameResReal) == (pathRes, nameRes)
-
-      self.assertEquals(pathRes, pathResReal)
-      self.assertEquals(nameRes, nameResReal)
+      self.assertEquals((pathRes, nameRes), (pathResReal, nameResReal))
 
 
-      #self.assert
+  def testStaticStatic(self):
 
+    staticNewA = lambda name : PythonModuleStatic(self.test_static[0], name=name)
+    staticResA = lambda x:x
+    onDiskNewA = lambda name : PythonModuleOnDisk(self.test_ondisk[0], name=name)
+    onDiskResA = lambda s : s.replace(self.test_ondisk[0], '0')
 
+    staticNewB = lambda name : PythonModuleStatic(self.test_static[1], name=name)
+    staticResB = lambda x:x
+    onDiskNewB = lambda name : PythonModuleOnDisk(self.test_ondisk[1], name=name)
+    onDiskResB = lambda s : s.replace(self.test_ondisk[1], '1')
 
+    As = [(staticNewA, staticResA), (onDiskNewA, onDiskResA)]
+    Bs = [(staticNewB, staticResB), (onDiskNewB, onDiskResB)]
 
-
-
-
-
+    for a in As:
+      for b in Bs:
+        self.loopTestsOn(a, b)
 
 
 

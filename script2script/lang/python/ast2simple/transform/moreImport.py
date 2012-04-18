@@ -39,7 +39,6 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 #
 #  def visit(self, node):
 #    res = NoMoreImport(self.path).visit_withAdd(node)
-#    print ast2str(res, 'pyAst_python')
 #    return res
 #
 #
@@ -285,47 +284,9 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 #    return [node] + self._genAffect(node.name)
 #
 #
-#
-#
-#def Resolver:
-#
-#  self.content = [] #list of dictonnary of dictionary
-#
-#
-#
-#
-#def ModuleAst:
-#
-#  self.name
-#  self.subModules = {}
-#
-#  self.filepath
-#  self.package
-#
-#
-#
-#def FileResolver:
-#  get(from = (id, name), search = name) => foundKlass
-#
-#
-#def FoundResolver:
-#  get(from = (id, name), search = name) => foundKlass
-#  __getitem__[(id, name)]
-#
-#def FoundKlass:
-#  self.moduleFound
-#  self.FoundOnTheWay
-#
-#
-#
-# - path of the current module/package
-# - path of the main path
-# - PYTHONPATH
-# - python lib
 
 
 
-#class Resolver(object):
 
 
 
@@ -534,8 +495,10 @@ class PythonModuleFile(PythonModule):
       if name[-3:] == '.py': name = name[:-3]
 
       try:
+        #print 'self.getChild(%s)' % name
         mod = self.getChild(name)
-      except NoModuleFound:
+      except NoModuleFound as e:
+        #print 'NoModuleFound => %s , name=%s' % (e, name)
         pass
       else:
         res.append(mod)
@@ -571,7 +534,10 @@ class PythonModuleOnDisk(PythonModuleFile):
   """
   TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
 
-  def _f_listfiles(self, path): return os.listdir(path)
+  def _f_listfiles(self, path):
+    #print '_f_listfiles path=%s => %s' % (path, str(os.listdir(path)))
+    return os.listdir(path)
+
   def _f_join(self, *args): return os.path.join(*args)
   def _f_isfile(self, path): return os.path.isfile(path)
   def _f_isdir(self, path): return os.path.isdir(path)
@@ -665,37 +631,61 @@ class PythonModuleStatic(PythonModuleFile):
 
 
 
+#TODO do for zip
 #class PythonModuleZip(PythonModuleFile):
 #
 #  def __init__(self, ziplink, up_path = '', name='', up=None):
 #    if not isinstance(ziplink, zipfile.ZipFile):
+#      up_path = os.path.basename(ziplink)[:-4]
 #      ziplink = zipfile.ZipFile(ziplink, 'r')
 #    self._zip = ziplink
+#
 #
 #    PythonModuleFile.__init__(self, up_path, name, up)
 #
 #
+#  def __del__(self):
+#    self._zip.close()
+#
 #  def _f_listfiles(self, path):
+#    print '_f_listfiles', path
 #    res = []
-#    for zipinfo in self._zip.infolist:
-#      fn = zipinfo.filename
+#    print self._zip.namelist()
+#    for name in self._zip.namelist():
+#      if name[-1] == '/' : name = name[:-1] #remove the last / char
+#      print path
+#      print name[:len(path)]
+#      if name[:len(path)] != path: continue
+#
+#      print name, 'got it'
 #
 #
 #
-#    return []
-#    names = [
-#      for self._zip.infolist
+#    #  if name[:len(path)] == path:
+#    #      print 'ok'
+#    #  else:
+#    #    'ko'
+#
+#    #res = []
+#    #for zipinfo in self._zip.infolist:
+#    #  fn = zipinfo.filename
 #
 #
+##
+##    return []
+##    names = [
+##      for self._zip.infolist
 #
-#  def _f_join(self, *args): raise NotImplemented
-#  def _f_isfile(self, path): raise NotImplemented
-#  def _f_isdir(self, path): raise NotImplemented
-#  def _f_content(self, path):
+#  def _f_join(self, *args): return '/'.join(args)
 #
+#  def _f_isfile(self, path):
+#    return any((name == path for n in self._zip.namelist()))
 #
+#  def _f_isdir(self, path):
+#    return any((name == path+'/' for n in self._zip.namelist()))
 #
-#  def _f_new(self, base_dir, name, up): raise NotImplemented
+##  def _f_content(self, path):
+##  def _f_new(self, base_dir, name, up): raise NotImplemented
 
 
 
