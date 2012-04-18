@@ -32,50 +32,93 @@ from nodeTransformer import str2ast
 from script2script.lang.python.ast2simple.parsePython import ast2str
 
 
-#class MoreImport(nodeTransformer.NodeTransformer):
-#
-#  def __init__(self, path=sys.path):
-#    self.path = path
-#
-#  def visit(self, node):
-#    res = NoMoreImport(self.path).visit_withAdd(node)
-#    return res
-#
-#
-#class NoMoreImport(nodeTransformer.NodeTransformer):
-#  init_code = """
-#  class Module(object): pass
-#
-#  class DictModule(object):
-#    def __init__(self):
-#      self.content = {}
-#    
-#    def add(self, name, fct):
-#      self.content[name] = (False, fct)
-#
-#    def getModule(self, name):
-#      l, v = self.content[name]
-#      if not l:
-#        v = v()
-#        self.content[name] = (True, v)
-#      return v
-#      
-#  dictModule = DictModule()
-#  __import__ = dictModule.getModule
-#  """
-#
-#  def __init__(self, path):
-#    nodeTransformer.NodeTransformer.__init__(self)
-#
-#    self.resolver = SysPathFinder(path).getModuleFromName
-#    self.resolver_near = SysPathFinder(path, ['']).getModuleFromName
-#
-#    self.dict_imports = {}
-#    self.dict_imports_near = {} #the imports of files just at the same place that __file__
-#
-#
-#  def visit_withAdd(self, node):
-#    res = self.visit(node)
+class MoreImport(nodeTransformer.NodeTransformer):
+
+  def __init__(self, path=sys.path):
+    self.path = path
+
+  def visit(self, node):
+    pml = PythonModuleList()
+    for path in self.path:
+      moduleFact = lambda name : PythonModuleOnDisk(path, name=name)
+      pml.addModule(moduleFact)
+
+    sfr = SimpleFileResolver(pml)
+
+    res = NoMoreImport(sfr).main_visit(node)
+    return res
+
+
+class NoMoreImport(nodeTransformer.NodeTransformer):
+  init_code = """
+  class Module(object): pass
+
+  class DictModule(object):
+    def __init__(self):
+      self.content = {}
+
+    def add(self, name, fct):
+      self.content[name] = (False, fct)
+
+    #TODO do it for recursive module
+    #TODO so the function should take a module as param
+    def getModule(self, name):
+      l, v = self.content[name]
+      if not l:
+        m = Module()
+        self.content[name] = (True, m)
+        v(m)
+      return v
+
+  dictModule = DictModule()
+  __import__ = dictModule.getModule
+  """
+
+  def __init__(self, moduleRef, curPath=''):
+    nodeTransformer.NodeTransformer.__init__(self)
+
+    self.dict_imports = {} #import in a dict form
+
+    self._moduleRef = moduleRef
+    self._curPath = curPath
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  def main_visit(self, node):
+    res = self.visit(node)
+    return res
+
+
+
+
+
+
+
+
+
+
+
+
 #    toAdd = []
 #
 #    dict_var = self.genVar('dict_import').name
@@ -111,117 +154,21 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 #    assert False, "type of master ast unknown"
 #
 #
-#  def visit_Import(self, node):
-#
-#    for alias in node.names:
-#      name = alias.name
-#      asname = alias.asname or name
-#
-#      #test if the name is componsed
-#      #if '.' in name:
-#      #  curName = name.split('.')[0]
-#      #  leftName = name.split('.')[1:]
-#
-#
-#      if name not in self.dict_imports_near and \
-#            name not in self.dict_imports:
-#
-#        m = self.resolver_near(name)
-#        if isinstance(m, ErrorModule):
-#          m = self.resolver(name)
-#        self.dict_imports[name] = (m.getName(), m.getAst())
-#
-#      return [
-#          str2ast("asname = __import__('%s')" % name, asname = asname),
-#      ]
-#
-#
-#
-#class SysPathFinder(object):
-#
-#  def __init__(self, path=sys.path, cur_path=os.getcwd()):
-#    self.path = sys.path
-#    self.cur_path = cur_path
-#
-#  def haveDirModule(self, name, dirPath):
-#    #test if it's have a directory module
-#    iniFile = os.path.join(dirPath, name, '__init__.py')
-#    if os.path.isfile(iniFile):
-#      return CreateModuleFromFile(iniFile, name)
-#    return None
-#
-#  def haveFileModule(self, name, dirPath):
-#    #test if it's a file module
-#    modFile = os.path.join(dirPath, name + '.py')
-#    if os.path.isfile(modFile):
-#      return CreateModuleFromFile(modFile, name)
-#    return None
-#
-#
-#  def getNameFromDir(self, name, dirPath):
-#    if dirPath == '': dirPath = self.cur_path
-#    if not os.path.isdir(dirPath): return None
-#
-#    #TODO take care of zip files
-#    return self.haveDirModule(name, dirPath) or \
-#          self.haveFileModule(name, dirPath)
-#
-#
-#  def getModuleFromName(self, name):
-#    for dirPath in self.path:
-#      m = self.getNameFromDir(name, dirPath)
-#      if m is not None: return m
-#
-#    return ErrorModule(name)
-#
-#
-#
-#class ErrorModule(nodeTransformer.VariableGenerator):
-#
-#  def __init__(self, name):
-#    self.name = name
-#
-#    self.fctName = self.genVar().name
-#
-#  def getAst(self):
-#
-#    code = """
-#      def fctName():
-#        raise ImportError("No module named %s")
-#    """ % self.name
-#
-#    return str2ast(code, fctName = self.fctName)
-#
-#  def getName(self): return self.fctName
-#
-#
-#
-#
-#
-#class CreateModuleFromFile(nodeTransformer.NodeTransformer):
-#  """
-#  Create a module object from a module file
-#  """
-#
-#
-#  def __init__(self, filePath, moduleName):
-#    self.filePath = filePath
-#    self.moduleName = moduleName
-#
-#    self.moduleFctVariable = self.genVar('moduleFct')
-#
-#    self.moduleVar = self.genVar('module')
-#
-#
-#  def getAst(self):
-#    with open(self.filePath) as f:
-#      contentAst = ast.parse(f.read(), self.filePath, 'exec')
-#    return [self.visit(contentAst)]
-#
-#  def getName(self):
-#    return self.moduleFctVariable.name
-#
-#
+
+  def genImport(self, module, fctName):
+    contentAst = ast.parse(module.getContent(), module.getPath(), 'exec').body
+
+
+    def fctName(module):
+      contentAst
+      module.__file__ = file
+      module.__name__ = name
+
+
+    print contentAst
+
+    return None
+
 #  def visit_Module(self, node):
 #
 #    args = arguments([], None, None, [])
@@ -260,30 +207,114 @@ from script2script.lang.python.ast2simple.parsePython import ast2str
 #      return e
 #
 #    return []
+
+
+
+
+
+  def addImport(self, name):
+    resModule = self._moduleRef.find(name, self._curPath)
+
+    fctName = self.genVar('importfct')
+
+    if resModule is None: #error case
+      codeAst = str2ast("""
+            def fctName():
+            raise ImportError("No module named %s")
+          """ % self.name, fctName = fctName),
+
+      self.dict_imports[name] = (fctName, codeAst)
+
+      return name
+
+    #print resModule.getNames()
+    newName = name #'.'.join(resModule.getNames())
+    codeAst = self.genImport(resModule, fctName)
+
+    self.dict_imports[newName]  = (fctName, codeAst)
+
+    return newName
+
+
+  def visit_Import(self, node):
+    res = []
+
+    for alias in node.names:
+      name = alias.name
+      asname = alias.asname or name
+
+      #2 cases
+      # - import toto.tutu.titi as tralala => this is tralal = toto.tutu.titi => lo see after
+      # - import toto.tutu.titi => toto = toto, toto.tutu = toto.tutu, toto.tutu.titi = toto.tutu.titi
+      absName = self.addImport(name)
+
+      res += [
+        str2ast("asname = __import__('%s')" % absName, asname = asname)
+      ]
+
+    return res
+
+
+    #test if the name is componsed
+    #if '.' in name:
+    #  curName = name.split('.')[0]
+    #  leftName = name.split('.')[1:]
+
+    #  if name not in self.dict_imports_near and \
+    #        name not in self.dict_imports:
+
+    #    m = self.resolver_near(name)
+    #    if isinstance(m, ErrorModule):
+    #      m = self.resolver(name)
+    #    self.dict_imports[name] = (m.getName(), m.getAst())
+
+    #  return [
+    #      str2ast("asname = __import__('%s')" % name, asname = asname),
+    #  ]
+
+
+
+#class SysPathFinder(object):
 #
 #
-#  def visit_Assign(self, node):
-#    assert len(node.targets) == 1
-#    assert isinstance(node.targets[0], Name)
-#
-#    names = []
-#    for t in node.targets:
-#      names += self.getAllNames(t)
-#
-#    resAst = [node]
-#    for name in names:
-#      resAst += self._genAffect(name)
-#
-#    return resAst
-#
-#
-#  def visit_ClassDef(self, node):
-#    return [node] + self._genAffect(node.name)
-#
-#  def visit_FunctionDef(self, node):
-#    return [node] + self._genAffect(node.name)
-#
-#
+
+
+
+class ModuleAffectation(nodeTransformer.NodeTransformer):
+  #TODO to complete
+
+  def visit_Assign(self, node):
+    assert len(node.targets) == 1
+    assert isinstance(node.targets[0], Name)
+
+    names = []
+    for t in node.targets:
+      names += self.getAllNames(t)
+
+    resAst = [node]
+    for name in names:
+      resAst += self._genAffect(name)
+
+    return resAst
+
+
+  def visit_ClassDef(self, node):
+    return [node] + self._genAffect(node.name)
+
+  def visit_FunctionDef(self, node):
+    return [node] + self._genAffect(node.name)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -294,7 +325,6 @@ class SimpleFileResolver(object):
 
   def __init__(self, pythonModule):
     self.pm = pythonModule
-
 
   def find(self, toStr, fromStr=''):
     """
@@ -600,7 +630,7 @@ class PythonModuleStatic(PythonModuleFile):
 
   def _s_getPathElement(self, path):
     try:
-      return reduce(lambda r, n : r[n], path.split('/')[1:], self._diskContent)
+      return reduce( lambda r, n : r[n], path.split('/')[1:], self._diskContent)
     except KeyError:
       return None
 
