@@ -33,9 +33,7 @@ class TestPythonModuleFile(unittest.TestCase):
         "'toto': ('8173c640b6c07b3f0d47c9a8f45875b3', {}), "
         "'tutu': ('8f134b982b689ecfb87ac0a03c7d774c', {})"
       "}), "
-        "'importTest_first': ('15677e4928e7fe59a4da3544371a1895', {"
-        "'import_first': ('6f4114b0b9e2e71f075cb867b2ce8443', {})"
-      "}), "
+      "'importTest_first': ('15677e4928e7fe59a4da3544371a1895', {}), "
       "'importTest_simple': ('3a0008caa56ac47f82d9d19e07473efa', {})"
     "})")
 
@@ -52,9 +50,9 @@ class TestPythonModuleStatic(unittest.TestCase):
         '__init__.py': 'importTest_complex/__init__.py',
       },
       'importTest_first' :  {
-        'import_first.py' : 'importTest_first/import_first.py',
         '__init__.py': 'importTest_first/__init__.py',
       },
+      'importTest_first.py' : 'importTest_first/import_first.py',
       'importTest_empty': {},
       'importTest_simple.py': 'importTest_simple.py',
     }
@@ -66,9 +64,7 @@ class TestPythonModuleStatic(unittest.TestCase):
         "'toto': ('266020d79799fa1356744ff4af5d4869', {}), "
         "'tutu': ('dc97b1a2e8269293e02aed087ff39cdc', {})"
       "}), "
-      "'importTest_first': ('49c275c5921913e3c3fe90f08de0f9b7', {"
-        "'import_first': ('d714ffce32994cf49e1a05ea3d2c4e44', {})"
-      "}), "
+      "'importTest_first': ('49c275c5921913e3c3fe90f08de0f9b7', {}), "
       "'importTest_simple': ('d5b1e8321944d1377924dd34bfbadf3d', {})"
     "})")
 
@@ -306,17 +302,17 @@ class TestMoreImport(AstTransformerTestClass):
   #  self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
 
 
-#  def test_first(self):
-#
-#    def test_first(m):
-#      m('begin')
-#      import importTest_first
-#      m(importTest_first.a)
-#      m('end')
-#
-#    self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
-#
-#
+  #def test_first(self):
+
+  #  def test_first(m):
+  #    m('begin')
+  #    import importTest_first
+  #    m(importTest_first.a)
+  #    m('end')
+
+  #  self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
+
+
 #  def test_importMultiple(self):
 #
 #    def test_importMultiple(m):
