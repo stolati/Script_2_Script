@@ -29,10 +29,10 @@ class VariableGenerator(object):
 
   #generate a variable object that can give ast tree for most common uses
   def genVar(self, name=''):
-    return GeneratedVariable( self.geneVariable(name) )
+    return AstVariable( self.geneVariable(name) )
 
 
-class GeneratedVariable(object):
+class AstVariable(object):
 
   def __init__(self, name): self.name = name
 
@@ -46,6 +46,9 @@ class GeneratedVariable(object):
 
   def assign(self, val, name=''):
     return ast.Assign([self.store(name=name)], val)
+
+  def param(self):
+    return ast.Name(self.name, ast.Param())
 
   def __str__(self): return self.name
 

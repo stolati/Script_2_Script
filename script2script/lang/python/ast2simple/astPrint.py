@@ -21,7 +21,8 @@ class Print_python:
 
     def classNotFound(self, e):
         if hasattr(e, '_fields'): return '%s%s' % (e, repr(e._fields))
-        if hasattr(e, '__iter__'): return '%s(is a list)' % (e)
+        #if hasattr(e, '__iter__'): return '%s(is a list)' % (e)
+        if hasattr(e, '__iter__'): return ''.join([self(el)+'\n' for el in e])
         return str(e)
 
     def __call__(self, e): return self.ast2str(e) #for one time change

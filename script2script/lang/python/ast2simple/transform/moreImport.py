@@ -6,7 +6,9 @@ import sys
 import nodeTransformer
 import os.path, os
 import zipfile
-from nodeTransformer import str2ast
+from nodeTransformer import str2ast, AstVariable
+
+#TODO don't forget the With ast stuff
 
 
 #TODO for the future, add a list of import to include (for the __import__('name') def)
@@ -61,21 +63,24 @@ class NoMoreImport(nodeTransformer.NodeTransformer):
       self.content[name] = (False, fct)
 
     #TODO do it for recursive module
-    #TODO so the function should take a module as param
     def getModule(self, name):
+      if name not in self.content:
+        raise ImportError("No module named %s" % name)
+
       l, v = self.content[name]
-      if not l:
-        m = Module()
-        self.content[name] = (True, m)
-        v(m)
-      return v
+      if l: return v #v is the module
+
+      m = Module()
+      self.content[name] = (True, m)
+      v(m)
+      return m
 
   dictModule = DictModule()
   __import__ = dictModule.getModule
   """
 
   def __init__(self, moduleRef, curPath=''):
-    nodeTransformer.NodeTransformer.__init__(self)
+    NodeTransformer.__init__(self)
 
     self.dict_imports = {} #import in a dict form
 
@@ -84,152 +89,70 @@ class NoMoreImport(nodeTransformer.NodeTransformer):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   def main_visit(self, node):
+    #the node should be a module
     res = self.visit(node)
-    return res
+
+    dictModule_klass = self.genVar('DictModule')
+    dictModule_inst = self.genVar('dictModule')
+    before = str2ast(self.init_code, DictModule=dictModule_klass.name, dictModule=dictModule_inst.name)
 
 
+    for k, (vname, vast) in self.dict_imports.iteritems():
+      before += vast
+      before += str2ast("dictModule.add('%s', moduleFctVar)" % k, dictModule = dictModule_inst.name, moduleFctVar=vname.name)
+      pass
 
+    node.body = before + node.body
+    return node
 
-
-
-
-
-
-
-
-
-#    toAdd = []
-#
-#    dict_var = self.genVar('dict_import').name
-#
-#    klassName = self.genVar('klass').name
-#
-#    toAdd = str2ast(self.init_code,
-#        DictModule = self.genVar('klass').name,
-#        dictModule = dict_var
-#    )
-#
-#
-#    for k, (vname, vast) in self.dict_imports.iteritems():
-#      toAdd += vast + str2ast("dict_var.add('%s', fct)" % k,
-#              dict_var = dict_var,
-#              fct = vname
-#      )
-#
-#    for k, (vname, vast) in self.dict_imports_near.iteritems():
-#      toAdd += vast + str2ast("dict_var.add('%s', fct)" % k,
-#              dict_var = dict_var,
-#              fct = vname
-#      )
-#
-#
-#    if isinstance(res, Module):
-#      res.body = toAdd + res.body
-#      return res
-#
-#    if isinstance(res, list):
-#      return toAdd + res
-#
-#    assert False, "type of master ast unknown"
-#
-#
 
   def genImport(self, module, fctName):
+    """
+    Generate the import function for this name
+    The import function is in the form :
+    def fctName(genVar_398_module):
+      genVar_398_module.__file__ = "/my/module/file/path/toto/tutu"
+      genVar_398_module.__name__ = "toto.tutu"
+
+    It dont' return a module, just affection values to the parameter module
+    """
+
     contentAst = ast.parse(module.getContent(), module.getPath(), 'exec').body
+    moduleVar = self.genVar('module')
 
+    contentAst = [
+        moduleVar.assign(Str(module.getPath()), '__file__'),
+        moduleVar.assign(Str('.'.join(module.getNames()[1:])), '__name__'), #TODO remove the [1:]
+    ] + ModuleAffectation(moduleVar.name).visit(contentAst)
 
-    def fctName(module):
-      contentAst
-      module.__file__ = file
-      module.__name__ = name
-
-
-    print contentAst
-
-    return None
-
-#  def visit_Module(self, node):
-#
-#    args = arguments([], None, None, [])
-#
-#    init =  [
-#        self.moduleVar.assign( Call(Name('Module', Load()), [], [], None, None)  ),
-#    ]
-#
-#    res = [
-#        Return( self.moduleVar.load() ),
-#    ]
-#
-#    #add __name__ = and __file__ = in the module
-#    node.body = [
-#        Assign([Name('__name__', Store())], Str(self.moduleName)),
-#        Assign([Name('__file__', Store())], Str(self.filePath)),
-#
-#    ] + node.body
-#
-#    return FunctionDef(self.moduleFctVariable.name, args,
-#        init + self.visit(node.body) + res
-#    , [])
-#
-#  def _genAffect(self, name):
-#    return [ self.moduleVar.assign(name=name, val=Name(name, Load())), ]
-#
-#
-#  def getAllNames(self, node):
-#    if isinstance(node, Name):
-#      return [node.id]
-#
-#    if isinstance(node, List) or isinstance(node, Tuple):
-#      res = []
-#      for e in node.elts:
-#        res += self.getAllNames(e)
-#      return e
-#
-#    return []
-
-
-
+    arguments = ast.arguments([moduleVar.param()], None, None, [])
+    return [FunctionDef(fctName, arguments , contentAst, [] )]
 
 
   def addImport(self, name):
+    """
+    from a name (and searching the reference of the current object)
+    return an absolute name for the import.
+    Put the module result into the inter dict
+    """
+
     resModule = self._moduleRef.find(name, self._curPath)
 
     fctName = self.genVar('importfct')
 
     if resModule is None: #error case
       codeAst = str2ast("""
-            def fctName():
-            raise ImportError("No module named %s")
-          """ % self.name, fctName = fctName),
+            def fctName(moduleVar):
+              raise ImportError("No module named %s")
+          """ % name, fctName = fctName.name)
 
       self.dict_imports[name] = (fctName, codeAst)
 
       return name
 
-    #print resModule.getNames()
-    newName = name #'.'.join(resModule.getNames())
-    codeAst = self.genImport(resModule, fctName)
+    newName = '.'.join(resModule.getNames()[1:]) #TODO remove the [1:]
+    codeAst = self.genImport(resModule, fctName.name)
 
     self.dict_imports[newName]  = (fctName, codeAst)
 
@@ -255,33 +178,42 @@ class NoMoreImport(nodeTransformer.NodeTransformer):
     return res
 
 
-    #test if the name is componsed
-    #if '.' in name:
-    #  curName = name.split('.')[0]
-    #  leftName = name.split('.')[1:]
-
-    #  if name not in self.dict_imports_near and \
-    #        name not in self.dict_imports:
-
-    #    m = self.resolver_near(name)
-    #    if isinstance(m, ErrorModule):
-    #      m = self.resolver(name)
-    #    self.dict_imports[name] = (m.getName(), m.getAst())
-
-    #  return [
-    #      str2ast("asname = __import__('%s')" % name, asname = asname),
-    #  ]
-
-
-
-#class SysPathFinder(object):
-#
-#
-
 
 
 class ModuleAffectation(nodeTransformer.NodeTransformer):
+  """
+  For each affectation in the ast,
+  do another one for the variable name in the form
+  toto = 'tutu'
+  myVar.toto = toto
+
+  It's used in the module part to have the module.var acess
+  """
+
   #TODO to complete
+
+  def __init__(self, varName):
+    NodeTransformer.__init__(self)
+    self._varName = AstVariable(varName)
+
+  def _genAffect(self, name):
+    return [self._varName.assign( ast.Name(name, Load()), name)]
+
+  @staticmethod
+  def getAllNames(eList):
+    """
+    Return all the names inside a tuple/list assignment
+    Don't return object attribute assigment
+    """
+    if isinstance(eList, ast.Name): return [eList.id]
+    if isinstance(eList, ast.List) or isinstance(eList, ast.Tuple):
+      res = []
+      for e in eList.elts:
+        res += ModuleAffectation.getAllNames(e)
+      return res
+
+    #in attribute case
+    return []
 
   def visit_Assign(self, node):
     assert len(node.targets) == 1
@@ -296,7 +228,6 @@ class ModuleAffectation(nodeTransformer.NodeTransformer):
       resAst += self._genAffect(name)
 
     return resAst
-
 
   def visit_ClassDef(self, node):
     return [node] + self._genAffect(node.name)
@@ -439,7 +370,6 @@ class PythonModuleList(PythonModule):
   def getNamesAbs(self, nameList):
     if not nameList: return self
 
-    #print 'getNamesAbs', nameList
     try: #if nameList contain the digit
       i, nameListTemp = int(nameList[0]), nameList[1:]
 
@@ -464,14 +394,11 @@ class PythonModuleList(PythonModule):
 
 
   def getNamesRel(self, nameListTo, nameListFrom):
-    #print 'getNamesRel', nameListTo, nameListFrom
     #TODO to remove
     if len(nameListFrom) == 0: return self.getNamesAbs(nameListTo)
 
-    #print 'not null'
 
     fromElement = self.getNamesAbs(nameListFrom)
-    #print 'fromElement', fromElement
 
     if fromElement is None: return None
 
@@ -525,10 +452,8 @@ class PythonModuleFile(PythonModule):
       if name[-3:] == '.py': name = name[:-3]
 
       try:
-        #print 'self.getChild(%s)' % name
         mod = self.getChild(name)
       except NoModuleFound as e:
-        #print 'NoModuleFound => %s , name=%s' % (e, name)
         pass
       else:
         res.append(mod)
@@ -565,7 +490,6 @@ class PythonModuleOnDisk(PythonModuleFile):
   TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
 
   def _f_listfiles(self, path):
-    #print '_f_listfiles path=%s => %s' % (path, str(os.listdir(path)))
     return os.listdir(path)
 
   def _f_join(self, *args): return os.path.join(*args)
@@ -678,21 +602,12 @@ class PythonModuleStatic(PythonModuleFile):
 #    self._zip.close()
 #
 #  def _f_listfiles(self, path):
-#    print '_f_listfiles', path
 #    res = []
-#    print self._zip.namelist()
 #    for name in self._zip.namelist():
 #      if name[-1] == '/' : name = name[:-1] #remove the last / char
-#      print path
-#      print name[:len(path)]
 #      if name[:len(path)] != path: continue
 #
-#      print name, 'got it'
-#
-#
-#
 #    #  if name[:len(path)] == path:
-#    #      print 'ok'
 #    #  else:
 #    #    'ko'
 #
