@@ -33,10 +33,10 @@ def echo(fn, write=sys.stdout.write):
     write('%s(%s)\n' % (fn.__name__, ', '.join(args)))
     try:
       res = fn(*v, **k)
-      write('%s => %s' % (fn.__name__, res))
+      write('%s => %s\n' % (fn.__name__, repr(res)))
       return res
     except Exception as e:
-      write('%s raise %s', (fn.__name__, e))
+      write('%s raise %s\n', (fn.__name__, e))
       raise
 
   return wrapped
@@ -111,14 +111,15 @@ class PythonModule(object):
     return reduce(lambda e, n: e[n] , nameList, self)
 
   def getNames(self):
-    if self._up is None: return []
+    if self._up is None:
+      return [self._name] if self._name else list()
     return self._up.getNames() + [self._name]
 
   def __str__(self):
     return ('%(_up)s.%(_name)s' if self._up else '%(_name)s') % self.__dict__
 
   def __repr__(self):
-    return '<%s %s "%s">' % (self.__class__.__name__, id(self), str(self))
+    return '<%s content="%s">' % (self.__class__.__name__, str(self))
 
 
   def dump(self):
@@ -154,7 +155,7 @@ class PythonModuleList(PythonModule):
     for modChild in mod:
       name = modChild.getName()
       if name not in self._childs:
-        self._childs[name] = mod
+        self._childs[name] = modChild
         modChild.setUp(self._up)
 
   def getContent(self): return ''
@@ -168,7 +169,6 @@ class PythonModuleList(PythonModule):
   def getChilds(self):
     return list(self._childs.iteritems())
 
-  @echo
   def getNamesAbs(self, nameList):
     if not nameList: return self
 
@@ -179,17 +179,9 @@ class PythonModuleList(PythonModule):
     return None
 
   def getNamesRel(self, nameListTo, nameListFrom):
-    print 'getNamesRel', nameListTo, nameListFrom
-    #TODO to remove
-    if len(nameListFrom) == 0: return self.getNamesAbs(nameListTo)
-
     fromElement = self.getNamesAbs(nameListFrom)
-    print fromElement
-
     if fromElement is None: return None
-
     return fromElement.getNamesAbs(nameListTo)
-
 
 
 class PythonModuleFile(PythonModule):
@@ -253,6 +245,9 @@ class PythonModuleFile(PythonModule):
     return moduleFrom.getNamesAbs(nameListTo)
 
   def getPath(self):
+    return self._contentFile
+
+  def getPathRel(self):
     return self._contentFile
 
   #Function that the class must implement
@@ -340,7 +335,7 @@ class PythonModuleStatic(PythonModuleFile):
 
   def _s_getPathElement(self, path):
     try:
-      return reduce( lambda r, n : r[n], path.split('/')[1:], self._diskContent)
+      return reduce( lambda r, n : r[n], path.split(os.path.sep)[1:], self._diskContent)
     except KeyError:
       return None
 
@@ -349,25 +344,12 @@ class PythonModuleStatic(PythonModuleFile):
     if pathElem is None : return []
     return list(pathElem.iterkeys())
 
-  def _f_join(self, *args): return '/'.join(args)
+  def _f_join(self, *args): return os.path.sep.join(args)
   def _f_isfile(self, path): return isinstance(self._s_getPathElement(path), str)
   def _f_isdir(self, path): return isinstance(self._s_getPathElement(path), dict)
   def _f_content(self, path): return self._s_getPathElement(path)
   def _f_new(self, base_dir, name, up):
     return PythonModuleStatic(self._diskContent, base_dir, name, up)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

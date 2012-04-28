@@ -2,6 +2,7 @@
 import unittest, types, mock
 import sys
 import os.path
+import re
 
 #   import X => ok, have a variable = module object
 #   import X.Y => ok, have a variable = module object
@@ -176,30 +177,30 @@ class TestMultipleModuleList(unittest.TestCase):
     ]
 
     self.testVals = [
-      #(('a1', ''), ('a1/__init__.py', 'a1')), #load a module dir
-      #(('a1.a', ''), ('a1/a.py', 'a1.a')), #load a module file
-      #(('a4', 'a1'), ('a4/__init__.py', 'a4')), #load a dir module from the other side
-      #(('a4.a', 'a1'), ('a4/a.py', 'a4.a')), #load a file module from the other side
-      #(('a', 'a1'), ('a1/a.py', 'a1.a')), #load a file from inside
-      #(('c', 'a1'), ('a1/c/__init__.py', 'a1.c')), #load a dir from inside
-      #(('c.a', 'a1'), ('a1/c/a.py', 'a1.c.a')), #load a dir/file from inside
-      #(('a1.c.a', ''), ('a1/c/a.py', 'a1.c.a')), #load a dir/file from base
-      #(('a1.c.a', 'a4.c.a'), ('a1/c/a.py', 'a1.c.a')), #load a dir/file from other side
-      #(('a', 'a1.c'), ('a1/c/a.py', 'a1.c.a')), #acces 'a' from a stuff
-      #(('a', 'a2'), ('a2/a.py', 'a2.a')), #acess 'a' from another stuff
+      (('a1', ''), ('/a1/__init__.py', 'a1')), #load a module dir
+      (('a1.a', ''), ('/a1/a.py', 'a1.a')), #load a module file
+      (('a4', 'a1'), ('/a4/__init__.py', 'a4')), #load a dir module from the other side
+      (('a4.a', 'a1'), ('/a4/a.py', 'a4.a')), #load a file module from the other side
+      (('a', 'a1'), ('/a1/a.py', 'a1.a')), #load a file from inside
+      (('c', 'a1'), ('/a1/c/__init__.py', 'a1.c')), #load a dir from inside
+      (('c.a', 'a1'), ('/a1/c/a.py', 'a1.c.a')), #load a dir/file from inside
+      (('a1.c.a', ''), ('/a1/c/a.py', 'a1.c.a')), #load a dir/file from base
+      (('a1.c.a', 'a4.c.a'), ('/a1/c/a.py', 'a1.c.a')), #load a dir/file from other side
+      (('a', 'a1.c'), ('/a1/c/a.py', 'a1.c.a')), #acces 'a' from a stuff
+      (('a', 'a2'), ('/a2/a.py', 'a2.a')), #acess 'a' from another stuff
 
-      ##same as previous, the other way around
-      #(('a4', ''), ('a4/__init__.py', 'a4')), #load a module dir
-      #(('a4.a', ''), ('a4/a.py', 'a4.a')), #load a module file
-      #(('a1', 'a4'), ('a1/__init__.py', 'a1')), #load a dir module from the other side
-      #(('a1.a', 'a4'), ('a1/a.py', 'a1.a')), #load a file module from the other side
-      #(('a', 'a4'), ('a4/a.py', 'a4.a')), #load a file from inside
-      #(('c', 'a4'), ('a4/c/__init__.py', 'a4.c')), #load a dir from inside
-      #(('c.a', 'a4'), ('a4/c/a.py', 'a4.c.a')), #load a dir/file from inside
-      #(('a4.c.a', ''), ('a4/c/a.py', 'a4.c.a')), #load a dir/file from base
-      #(('a4.c.a', 'a1.c.a'), ('a4/c/a.py', 'a4.c.a')), #load a dir/file from other side
-      #(('a', 'a4.c'), ('a4/c/a.py', 'a4.c.a')), #acces 'a' from a stuff
-      #(('a', 'a5'), ('a5/a.py', 'a5.a')), #acess 'a' from another stuff
+      #same as previous, the other way around
+      (('a4', ''), ('/a4/__init__.py', 'a4')), #load a module dir
+      (('a4.a', ''), ('/a4/a.py', 'a4.a')), #load a module file
+      (('a1', 'a4'), ('/a1/__init__.py', 'a1')), #load a dir module from the other side
+      (('a1.a', 'a4'), ('/a1/a.py', 'a1.a')), #load a file module from the other side
+      (('a', 'a4'), ('/a4/a.py', 'a4.a')), #load a file from inside
+      (('c', 'a4'), ('/a4/c/__init__.py', 'a4.c')), #load a dir from inside
+      (('c.a', 'a4'), ('/a4/c/a.py', 'a4.c.a')), #load a dir/file from inside
+      (('a4.c.a', ''), ('/a4/c/a.py', 'a4.c.a')), #load a dir/file from base
+      (('a4.c.a', 'a1.c.a'), ('/a4/c/a.py', 'a4.c.a')), #load a dir/file from other side
+      (('a', 'a4.c'), ('/a4/c/a.py', 'a4.c.a')), #acces 'a' from a stuff
+      (('a', 'a5'), ('/a5/a.py', 'a5.a')), #acess 'a' from another stuff
     ]
 
 
@@ -224,19 +225,22 @@ class TestMultipleModuleList(unittest.TestCase):
 
 
   def testStaticStatic(self):
+    #staticFct = lambda s: s[1:] if s[0] == os.path.sep else s
+    staticFct = lambda x:x
+
+    def onDiskFct(s): #because of result complex
+      s = s.replace(self.test_ondisk[0], '')
+      s = s.replace(self.test_ondisk[1], '')
+      return s
 
     staticNewA = PythonModuleStatic(self.test_static[0])
-    staticResA = lambda x:x
     onDiskNewA = PythonModuleOnDisk(self.test_ondisk[0])
-    onDiskResA = lambda s : s.replace(self.test_ondisk[0], '0')
 
     staticNewB = PythonModuleStatic(self.test_static[1])
-    staticResB = lambda x:x
     onDiskNewB = PythonModuleOnDisk(self.test_ondisk[1])
-    onDiskResB = lambda s : s.replace(self.test_ondisk[1], '1')
 
-    As = [(staticNewA, staticResA), ] #(onDiskNewA, onDiskResA)]
-    Bs = [(staticNewB, staticResB), ] #(onDiskNewB, onDiskResB)]
+    As = [(staticNewA, staticFct), (onDiskNewA, onDiskFct)]
+    Bs = [(staticNewB, staticFct), (onDiskNewB, onDiskFct)]
 
     for a in As:
       for b in Bs:
