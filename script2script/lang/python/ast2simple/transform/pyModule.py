@@ -9,46 +9,13 @@ import zipfile
 from nodeTransformer import str2ast, AstVariable
 
 
-#TODO puts thoses functions into script2script.tools
-def echo(fn, write=sys.stdout.write):
-  import functools
-  code = fn.func_code
-  argcount = code.co_argcount
-  argnames = code.co_varnames[:argcount]
-  fn_defaults = fn.func_defaults or list()
-  argdefs = dict(zip(argnames[-len(fn_defaults):], fn_defaults))
-
-  def format_arg_value(arg_val):
-    arg, val = arg_val
-    return '%s=%r' % (arg, val)
-
-  @functools.wraps(fn)
-  def wrapped(*v, **k):
-    positional = map(format_arg_value, zip(argnames, v))
-    defaulted = [format_arg_value((a, argdefs[a]))
-        for a in argnames[len(v):] if a not in k]
-    nameless = map(repr, v[argcount:])
-    keyword = map(format_arg_value, k.items())
-    args = positional + defaulted + nameless + keyword
-    write('%s(%s)\n' % (fn.__name__, ', '.join(args)))
-    try:
-      res = fn(*v, **k)
-      write('%s => %s\n' % (fn.__name__, repr(res)))
-      return res
-    except Exception as e:
-      write('%s raise %s\n', (fn.__name__, e))
-      raise
-
-  return wrapped
-
-
 #TODO for the future, add a list of import to include (for the __import__('name') def)
 #TODO for the future, add a list of import to not include (because they are in a if)
 #TODO do a PythonModule for .zip files
 #TODO do a test on pyc and pyo files, saying it don't take them
 
 
-class SimpleFileResolver(object):
+class SimpleModuleResolver(object):
 
   def __init__(self, pythonModule):
     self.pm = pythonModule
@@ -271,7 +238,7 @@ class PythonModuleOnDisk(PythonModuleFile):
   TYPE_ROOT, TYPE_FILE, TYPE_DIR = ('root', 'file', 'dir')
 
   def _f_listfiles(self, path):
-    return os.listdir(path)
+    return os.listdir(path) if self._f_isdir(path) else []
 
   def _f_join(self, *args): return os.path.join(*args)
   def _f_isfile(self, path): return os.path.isfile(path)

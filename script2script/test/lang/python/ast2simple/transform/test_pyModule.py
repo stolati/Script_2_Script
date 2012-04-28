@@ -71,7 +71,7 @@ class TestPythonModuleStatic(unittest.TestCase):
     self.assertEquals(repr(pms.dump()), waiting_for)
 
 
-class TestSimpleFileResolver(unittest.TestCase):
+class TestSimpleModuleResolver(unittest.TestCase):
 
   def setUp(self):
     self.paths = {
@@ -116,7 +116,7 @@ class TestSimpleFileResolver(unittest.TestCase):
     ]
 
     pms = PythonModuleStatic(self.paths)
-    sfr = SimpleFileResolver(pms)
+    sfr = SimpleModuleResolver(pms)
 
     for (strTo, strFrom), resWait in testVals:
       m = sfr.find(strTo, strFrom)
@@ -211,7 +211,7 @@ class TestMultipleModuleList(unittest.TestCase):
     pml.addModule(moduleAFct)
     pml.addModule(moduleBFct)
 
-    sfr = SimpleFileResolver(pml)
+    sfr = SimpleModuleResolver(pml)
 
     for (toStr, fromStr), (pathRes, nameRes) in self.testVals:
       res = sfr.find(toStr, fromStr)
