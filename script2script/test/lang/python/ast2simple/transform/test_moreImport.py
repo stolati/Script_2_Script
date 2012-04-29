@@ -80,61 +80,61 @@ class TestMoreImport(AstTransformerTestClass):
     self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
 
 
-  def test_first(self):
+  #def test_first(self):
 
-    def test_first(m):
-      m('begin')
-      import importTest_first
-      m(importTest_first.a)
-      m('end')
+  #  def test_first(m):
+  #    m('begin')
+  #    import importTest_first
+  #    m(importTest_first.a)
+  #    m('end')
 
-    self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
-
-
-  def test_importMultiple(self):
-
-    def test_importfirst(m):
-      m('begin')
-      import importTest_first
-      m(importTest_first.a)
-      importTest_first.a = 1
-      m(importTest_first.a)
-
-      import importTest_first
-      m(importTest_first.a)
-      importTest_first.a = 2
-      m(importTest_first.a)
-
-      importTest_first = __import__('importTest_first')
-      m(importTest_first.a)
-      importTest_first.a = 3
-      m(importTest_first.a)
-
-      import importTest_first as toto
-      m(importTest_first.a, toto.a)
-      importTest_first.a = 4
-      m(importTest_first.a, toto.a)
-      m('end')
-
-      try:
-        reload(importTest_first)
-      except TypeError: #when importTest_first is not a module
-        pass
-
-    self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
+  #  self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
 
 
-  def test_subImport(self):
+  #def test_importMultiple(self):
 
-    def test_subImport(m):
-      m('begin')
+  #  def test_importfirst(m):
+  #    m('begin')
+  #    import importTest_first
+  #    m(importTest_first.a)
+  #    importTest_first.a = 1
+  #    m(importTest_first.a)
 
-      #import importTest_complex.toto
-      import importTest_complex.tutu
+  #    import importTest_first
+  #    m(importTest_first.a)
+  #    importTest_first.a = 2
+  #    m(importTest_first.a)
 
-      m('end')
+  #    importTest_first = __import__('importTest_first')
+  #    m(importTest_first.a)
+  #    importTest_first.a = 3
+  #    m(importTest_first.a)
 
-    self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
+  #    import importTest_first as toto
+  #    m(importTest_first.a, toto.a)
+  #    importTest_first.a = 4
+  #    m(importTest_first.a, toto.a)
+  #    m('end')
+
+  #    try:
+  #      reload(importTest_first)
+  #    except TypeError: #when importTest_first is not a module
+  #      pass
+
+  #  self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
+
+
+  #def test_subImport(self):
+
+  #  def test_subImport(m):
+  #    m('begin')
+
+  #    #import importTest_complex.toto
+  #    import importTest_complex.tutu
+
+  #    m('end')
+
+  #  self.checkFctOnLocals(locals(), MoreImport(), mock.Mock)
 
 
 

@@ -7,6 +7,7 @@ import nodeTransformer
 import os.path, os
 import zipfile
 from nodeTransformer import str2ast, AstVariable
+from script2script.tools import echo
 
 
 #TODO for the future, add a list of import to include (for the __import__('name') def)
@@ -34,7 +35,8 @@ class SimpleModuleResolver(object):
     #test from the relative path
     if fromPath:
       try:
-        return self.pm.getNamesRel(toPath, fromPath)
+        res = self.pm.getNamesRel(toPath, fromPath)
+        if res : return res
       except NoModuleFound:
         pass
 
@@ -62,7 +64,7 @@ class PythonModule(object):
   def getContent(self): raise NotImplemented
   def getChild(self, name): raise NotImplemented
   def getChilds(self): raise NotImplemented
-  def getNamesRel(self, nameListFrom, nameListTo): raise NotImplemented
+  def getNamesRel(self, nameListTo, nameListFrom): raise NotImplemented
 
   def getName(self): return self._name
   def setName(self, name): self._name = name
@@ -119,7 +121,7 @@ class PythonModuleList(PythonModule):
     """
     self._modules.append(mod)
 
-    for modChild in mod:
+    for modChild in mod.getChilds():
       name = modChild.getName()
       if name not in self._childs:
         self._childs[name] = modChild
@@ -134,7 +136,7 @@ class PythonModuleList(PythonModule):
       raise NoModuleFound()
 
   def getChilds(self):
-    return list(self._childs.iteritems())
+    return list(self._childs.itervalues())
 
   def getNamesAbs(self, nameList):
     if not nameList: return self

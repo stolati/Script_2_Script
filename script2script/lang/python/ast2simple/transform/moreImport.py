@@ -71,8 +71,10 @@ class MoreImport(nodeTransformer.NodeTransformer):
     self.needed_modules[name] = ImportOneModule(self.getModule(name), ast, self).getModuleBody()
 
 
+  @echo
   def getAbsName(self, path, fromPath):
-    return self.moduleResolver.find(path, fromPath)
+    res = self.moduleResolver.find(path, fromPath)
+    return '.'.join(res.getNames()) if res else None
 
   def visit(self, node):
     assert isinstance(node, ast.Module)
@@ -105,18 +107,54 @@ class ImportOneModule(nodeTransformer.NodeTransformer):
         Assign([Name('__file__', Store())], Str(self._module.getPath() or '')),
     ] + self._ast
 
-    res = self.visit(ast)
+    #replace the import statements
+    res = str2ast('from importlib import import_module') + self.visit(ast)
 
-    moduleAffectation = str2ast("moduleObject = type('Module', (), {})", moduleObject = self._moduleVar.name)
+    #affect values to the module
+    moduleAffectation = str2ast("moduleObject = type('Module', (), {})()", moduleObject = self._moduleVar.name)
+    res = moduleAffectation + ModuleAffectation(self._moduleVar).visit(res)
 
-    return moduleAffectation + ModuleAffectation(self._moduleVar).visit(res)
+    print ast2str(res)
+
+    return res
+
+  def visit_Import(self, node):
+    res = []
+
+    for aliaselem in node.names:
+      name, asname = aliaselem.name, aliaselem.asname
+
+      if asname:
+        res += self.genImportWithAsName(name, asname)
+      else:
+        res += self.genImportWithoutAsName(name)
+
+    return res
+
+
+  def genImportWithAsName(self, name, asname):
+    """
+    Import, the imported element is the last of the list toto.titi.tutu => tutu
+    """
+    name = self._moreImportObject.getAbsName(name, '.'.join(self._module.getNames()))
+    pass
+
+  def genImportWithoutAsName(self, name):
+    """
+    Import, the imported element is the first of the list toto.titi.tutu => toto
+    """
+    objectName = name.split('.')[0]
+    absName = self._moreImportObject.getAbsName(name, '.'.join(self._module.getNames()))
+    #if absName is None:
+    #  return str2ast('raise ImportError("no module named %s")' % name)
+    return str2ast("name = import_module('%s', None)" % absName, name = objectName)
 
 
 
 class ModuleAffectation(nodeTransformer.NodeTransformer):
   """
   For each affectation in the ast,
-  do another one for the variable name in the form
+  create a do another one for the variable name in the form
   toto = 'tutu'
   myVar.toto = toto
 
@@ -125,7 +163,6 @@ class ModuleAffectation(nodeTransformer.NodeTransformer):
   """
 
   #TODO to complete
-
 
   def __init__(self, var):
     NodeTransformer.__init__(self)

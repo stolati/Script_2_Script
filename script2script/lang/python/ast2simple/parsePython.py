@@ -14,7 +14,7 @@ from ast2simple import PythonAst2Simple
 from script2script.simple.simple import dumpSimple
 
 
-def ast2str(astContent, my_format=None):
+def ast2str(astContent, my_format='pyAst_python'):
   formats = {
       'pyAst_python':astPrint.Print_python,
       'pyAst_simple':astPrint.print_simple,

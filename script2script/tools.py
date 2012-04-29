@@ -25,12 +25,9 @@ def echo(fn, write=sys.stdout.write):
     keyword = map(format_arg_value, k.items())
     args = positional + defaulted + nameless + keyword
     write('%s(%s)\n' % (fn.__name__, ', '.join(args)))
-    try:
-      res = fn(*v, **k)
-      write('%s => %s\n' % (fn.__name__, repr(res)))
-      return res
-    except Exception as e:
-      write('%s raise %s\n', (fn.__name__, e))
-      raise
+
+    res = fn(*v, **k)
+    write('%s => %s\n' % (fn.__name__, repr(res)))
+    return res
 
   return wrapped
