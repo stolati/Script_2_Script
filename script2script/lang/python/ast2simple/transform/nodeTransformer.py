@@ -33,21 +33,39 @@ class VariableGenerator(object):
 
 
 class AstVariable(object):
+  """
+  Symplify the use af a variable by providing python AST shortcuts
+  """
 
   def __init__(self, name): self.name = name
 
   def store(self, name=''):
+    """
+    return a store ast => when a variable is used left of equality
+    If the parameter name is provided, then store to an attribute (variable.name = *)
+    """
     if name == '': return ast.Name(self.name, ast.Store())
     return ast.Attribute(self.load(), name, ast.Store() )
 
   def load(self, name=''):
+    """
+    return a load ast => when a variable content is used
+    If the parameter name is provided, then get the attribute (variable.name)
+    """
     if name == '': return ast.Name(self.name, ast.Load())
     return ast.Attribute(self.load(), name, ast.Load() )
 
   def assign(self, val, name=''):
+    """
+    Assign an element to the variable (variable = val)
+    If the parameter name is provided, then assign to an attribute (variable.name = val)
+    """
     return ast.Assign([self.store(name=name)], val)
 
   def param(self):
+    """
+    Return the ast Param => when a variable is used ??? TODO
+    """
     return ast.Name(self.name, ast.Param())
 
   def __str__(self): return self.name
@@ -363,6 +381,10 @@ def str2ast(s, **kargs):
 
 
 class ChangeNames(NodeTransformer):
+  """
+  Node transformer that change all used named by another one
+  It could be variable (of any type including class and fct), class declaration, function declaration
+  """
   def __init__(self, namesDir):
     self.namesDir = namesDir
 

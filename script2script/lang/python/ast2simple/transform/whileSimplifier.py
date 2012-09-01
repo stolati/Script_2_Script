@@ -2,6 +2,7 @@
 
 from ast import *
 import nodeTransformer
+from nodeTransformer import str2ast
 
 #the while is simple (and in Simple, there are whiles)
 #while a1:

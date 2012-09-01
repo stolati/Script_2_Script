@@ -5,6 +5,10 @@ Tools module have helping function/classes for multi purpose
 import sys
 
 def echo(fn, write=sys.stdout.write):
+  """
+  A logging/debugging function decorator
+  @echo def toto(): => will print all input and output
+  """
   import functools
   code = fn.func_code
   argcount = code.co_argcount

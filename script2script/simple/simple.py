@@ -3,6 +3,13 @@
 # define too the walker of the simple AST
 #
 
+"""
+This python module declare the simple AST format
+It's created to be simple (way simplier than Python)
+"""
+
+
+
 #simple parts
 class AST:
     _fields = []

@@ -61,16 +61,16 @@ class AssignOnlyOne(nodeTransformer.NodeTransformer):
           ]
 
     tryAssign = [
-        #try: affectations
-        TryExcept(
-          affectations,
-          #except StopIteration:
-          [ExceptHandler( Name('StopIteration', Load()), None, [
-              #raise ValueError("need more value to unpack")
-              Raise(Call(Name('ValueError', Load()), [Str("need more value to unpack")], [], None, None), None, None),
-            ]
-            )],
-        [])
+       # #try: affectations
+       # TryExcept(
+       #   affectations,
+       #   #except StopIteration:
+       #   [ExceptHandler( Name('StopIteration', Load()), None, [
+       #       #raise ValueError("need more value to unpack")
+       #       Raise(Call(Name('ValueError', Load()), [Str("need more value to unpack")], [], None, None), None, None),
+       #     ]
+       #     )],
+       # [])
     ]
 
     testMoreValue = [
